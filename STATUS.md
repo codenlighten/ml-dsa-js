@@ -3,7 +3,7 @@
 ## 1. Project Overview
 This project is a JavaScript browser CDN library for post-quantum ML-DSA signatures (FIPS-204 / Dilithium). The goal is to provide a straightforward API and browser global (`MLDSA`) that developers can load from a CDN for key generation, signing, and verification.
 
-Current status: **Core implementation, build pipeline, tests, and CI workflow are complete and passing locally.**
+Current status: **Core implementation, build pipeline, tests, CI, and repo-hosted `dist` artifacts are enabled.**
 
 ## 2. Progress
 Completed:
@@ -23,6 +23,8 @@ Completed:
 - Added automated tests (`node:test`) covering levels 44/65/87, tamper checks, base64 round-trip, and keygen validation.
 - Added GitHub Actions workflow at `.github/workflows/ci.yml` to run install/build/test on push and pull requests.
 - Ran `npm run check` successfully (`build + test`, 8/8 tests passing).
+- Enabled direct artifact consumption from repository contents by tracking `dist/` in git.
+- Added README examples for jsDelivr GitHub mode URLs.
 
 Milestone reached:
 - **MVP source and CDN build config complete.**
@@ -34,14 +36,14 @@ Milestone reached:
   - Solution: Added strict input normalization and clear errors for unsupported inputs.
 
 ## 4. Next Steps
-1. Optionally publish package and verify CDN loading through unpkg/jsDelivr.
-2. Add release automation/version tagging.
-3. Consider adding browser integration tests against CDN-delivered bundle.
+1. Keep `dist/` updated in each release commit.
+2. Optionally publish package and verify CDN loading through unpkg/jsDelivr.
+3. Add release automation/version tagging.
 
 Timeline:
+- Dist artifact updates: every change that affects runtime bundle
 - Publishing: after versioning/release decision
 - Release automation: short follow-up
-- Browser integration tests: short follow-up
 
 ## 5. Team Members
 - Gregory J. Ward — Project owner / CTO / product direction

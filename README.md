@@ -40,6 +40,22 @@ npm test
 </script>
 ```
 
+## Browser usage (direct from GitHub repo contents)
+
+Via jsDelivr GitHub mode (recommended for direct repo files):
+
+```html
+<script src="https://cdn.jsdelivr.net/gh/codenlighten/ml-dsa-js@main/dist/mldsa.min.js"></script>
+```
+
+Pinned to a commit for deterministic builds:
+
+```html
+<script src="https://cdn.jsdelivr.net/gh/codenlighten/ml-dsa-js@e9e2034/dist/mldsa.min.js"></script>
+```
+
+You can swap `mldsa.min.js` with `mldsa.js` for the non-minified bundle.
+
 ## API
 
 ### `MLDSA.keygen({ level = 65, seed? })`
