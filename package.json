@@ -1,0 +1,35 @@
+{
+  "name": "ml-dsa-browser-cdn",
+  "version": "0.1.0",
+  "description": "Browser CDN bundle for post-quantum ML-DSA signatures",
+  "type": "module",
+  "main": "dist/mldsa.js",
+  "files": [
+    "dist",
+    "src",
+    "scripts",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "clean": "rm -rf dist",
+    "test": "node --test",
+    "check": "npm run build && npm test",
+    "prepublishOnly": "npm run build"
+  },
+  "keywords": [
+    "post-quantum",
+    "ml-dsa",
+    "dilithium",
+    "crypto",
+    "browser",
+    "cdn"
+  ],
+  "license": "MIT",
+  "dependencies": {
+    "@noble/post-quantum": "^0.5.4"
+  },
+  "devDependencies": {
+    "esbuild": "^0.25.10"
+  }
+}
