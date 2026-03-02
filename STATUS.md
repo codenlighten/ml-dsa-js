@@ -3,7 +3,7 @@
 ## 1. Project Overview
 This project is a JavaScript browser CDN library for post-quantum ML-DSA signatures (FIPS-204 / Dilithium). The goal is to provide a straightforward API and browser global (`MLDSA`) that developers can load from a CDN for key generation, signing, and verification.
 
-Current status: **Dual-stack mnemonic support (ECDSA + ML-DSA), EIP-55, bech32, WIF helpers, tests, CI, and repo-hosted `dist` artifacts are enabled.**
+Current status: **Dual-stack mnemonic support (ECDSA + ML-DSA), mnemonic generation, EIP-55, bech32, WIF helpers, tests, CI, and repo-hosted `dist` artifacts are enabled.**
 
 ## 2. Progress
 Completed:
@@ -31,6 +31,7 @@ Completed:
 - Added Ethereum EIP-55 checksum address output.
 - Added Bitcoin bech32 (`p2wpkh`) support alongside legacy `p2pkh`.
 - Added WIF export/import helpers for secp256k1 private keys.
+- Added user-facing mnemonic generation and validation APIs (`generateMnemonic`, `isValidMnemonic`).
 
 Milestone reached:
 - **MVP source and CDN build config complete.**

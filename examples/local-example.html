@@ -106,6 +106,20 @@
         <label for="mnemonic">24-word BIP39 mnemonic</label>
         <textarea id="mnemonic">abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon art</textarea>
 
+        <div class="grid">
+          <div>
+            <label for="mnemonicWords">Generate Mnemonic Words</label>
+            <select id="mnemonicWords">
+              <option value="12">12</option>
+              <option value="24" selected>24</option>
+            </select>
+          </div>
+          <div>
+            <label>&nbsp;</label>
+            <button id="generateMnemonic" type="button">Generate New Mnemonic</button>
+          </div>
+        </div>
+
         <label for="message">Message</label>
         <textarea id="message">quantum-safe migration starts now</textarea>
 
@@ -137,6 +151,8 @@
       const addressFormatEl = document.getElementById('addressFormat');
       const levelEl = document.getElementById('level');
       const mnemonicEl = document.getElementById('mnemonic');
+      const mnemonicWordsEl = document.getElementById('mnemonicWords');
+      const generateMnemonicBtn = document.getElementById('generateMnemonic');
       const messageEl = document.getElementById('message');
       const ecdsaAddressEl = document.getElementById('ecdsaAddress');
       const wifEl = document.getElementById('wif');
@@ -150,6 +166,16 @@
 
       chainEl.addEventListener('change', syncAddressFormatAvailability);
       syncAddressFormatAvailability();
+
+      generateMnemonicBtn.addEventListener('click', () => {
+        try {
+          const words = Number(mnemonicWordsEl.value);
+          mnemonicEl.value = MLDSA.generateMnemonic({ words });
+          result.innerHTML = '<p class="ok">✅ New mnemonic generated.</p>';
+        } catch (error) {
+          result.innerHTML = `<p class="bad">Error: ${error?.message || error}</p>`;
+        }
+      });
 
       runBtn.addEventListener('click', () => {
         try {

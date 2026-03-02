@@ -2286,6 +2286,7 @@ function genBech32(encoding) {
 var bech32 = /* @__PURE__ */ genBech32("bech32");
 
 // node_modules/@scure/bip39/esm/index.js
+var isJapanese = (wordlist2) => wordlist2[0] === "\u3042\u3044\u3053\u304F\u3057\u3093";
 function nfkd(str) {
   if (typeof str !== "string")
     throw new TypeError("invalid mnemonic type: " + typeof str);
@@ -2300,6 +2301,12 @@ function normalize(str) {
 }
 function aentropy(ent) {
   abytes2(ent, 16, 20, 24, 28, 32);
+}
+function generateMnemonic(wordlist2, strength = 128) {
+  anumber2(strength);
+  if (strength % 32 !== 0 || strength > 256)
+    throw new TypeError("Invalid entropy");
+  return entropyToMnemonic(randomBytes3(strength / 8), wordlist2);
 }
 var calcChecksum = (entropy) => {
   const bitsLeft = 8 - entropy.length / 4;
@@ -2319,6 +2326,11 @@ function mnemonicToEntropy(mnemonic, wordlist2) {
   const entropy = getCoder(wordlist2).decode(words);
   aentropy(entropy);
   return entropy;
+}
+function entropyToMnemonic(entropy, wordlist2) {
+  aentropy(entropy);
+  const words = getCoder(wordlist2).encode(entropy);
+  return words.join(isJapanese(wordlist2) ? "\u3000" : " ");
 }
 function validateMnemonic(mnemonic, wordlist2) {
   try {
@@ -6849,6 +6861,35 @@ function assertMnemonic(mnemonic) {
     throw new Error("invalid BIP-39 mnemonic");
   }
 }
+function wordsToStrength(words) {
+  const map = {
+    12: 128,
+    15: 160,
+    18: 192,
+    21: 224,
+    24: 256
+  };
+  const strength = map[words];
+  if (!strength) {
+    throw new Error("words must be one of: 12, 15, 18, 21, 24");
+  }
+  return strength;
+}
+function generateMnemonic2(options = {}) {
+  const { words = 24, entropy } = options;
+  if (entropy !== void 0) {
+    const bytes = normalizeBytes(entropy, "entropy");
+    if (![16, 20, 24, 28, 32].includes(bytes.length)) {
+      throw new Error("entropy must be 16, 20, 24, 28, or 32 bytes");
+    }
+    return entropyToMnemonic(bytes, wordlist);
+  }
+  const strength = wordsToStrength(words);
+  return generateMnemonic(wordlist, strength);
+}
+function isValidMnemonic(mnemonic) {
+  return validateMnemonic((mnemonic || "").trim(), wordlist);
+}
 function assertChain(chain2) {
   if (!(chain2 in chainCoinTypes)) {
     throw new Error(`Unsupported chain: ${chain2}. Use bitcoin, bsv, or ethereum.`);
@@ -7106,10 +7147,13 @@ function utils2() {
     normalizeMessage,
     defaultEcdsaPath,
     defaultPqPath,
-    toEip55Address
+    toEip55Address,
+    wordsToStrength
   };
 }
 var MLDSA = {
+  generateMnemonic: generateMnemonic2,
+  isValidMnemonic,
   keygen,
   sign,
   verify,
@@ -7135,6 +7179,8 @@ export {
   ecdsaPrivateKeyToWif,
   ecdsaSign,
   ecdsaVerify,
+  generateMnemonic2 as generateMnemonic,
+  isValidMnemonic,
   keygen,
   keygenFromMnemonic,
   sign,

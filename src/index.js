@@ -1,5 +1,10 @@
 import { ml_dsa44, ml_dsa65, ml_dsa87 } from '@noble/post-quantum/ml-dsa.js';
-import { mnemonicToSeedSync, validateMnemonic } from '@scure/bip39';
+import {
+  mnemonicToSeedSync,
+  validateMnemonic,
+  generateMnemonic as bip39GenerateMnemonic,
+  entropyToMnemonic,
+} from '@scure/bip39';
 import { wordlist } from '@scure/bip39/wordlists/english';
 import { HDKey } from '@scure/bip32';
 import { secp256k1 } from '@noble/curves/secp256k1.js';
@@ -102,6 +107,40 @@ function assertMnemonic(mnemonic) {
   if (!validateMnemonic(mnemonic.trim(), wordlist)) {
     throw new Error('invalid BIP-39 mnemonic');
   }
+}
+
+function wordsToStrength(words) {
+  const map = {
+    12: 128,
+    15: 160,
+    18: 192,
+    21: 224,
+    24: 256,
+  };
+  const strength = map[words];
+  if (!strength) {
+    throw new Error('words must be one of: 12, 15, 18, 21, 24');
+  }
+  return strength;
+}
+
+export function generateMnemonic(options = {}) {
+  const { words = 24, entropy } = options;
+
+  if (entropy !== undefined) {
+    const bytes = normalizeBytes(entropy, 'entropy');
+    if (![16, 20, 24, 28, 32].includes(bytes.length)) {
+      throw new Error('entropy must be 16, 20, 24, 28, or 32 bytes');
+    }
+    return entropyToMnemonic(bytes, wordlist);
+  }
+
+  const strength = wordsToStrength(words);
+  return bip39GenerateMnemonic(wordlist, strength);
+}
+
+export function isValidMnemonic(mnemonic) {
+  return validateMnemonic((mnemonic || '').trim(), wordlist);
 }
 
 function assertChain(chain) {
@@ -397,10 +436,13 @@ export function utils() {
     defaultEcdsaPath,
     defaultPqPath,
     toEip55Address,
+    wordsToStrength,
   };
 }
 
 const MLDSA = {
+  generateMnemonic,
+  isValidMnemonic,
   keygen,
   sign,
   verify,

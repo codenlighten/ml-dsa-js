@@ -141,3 +141,23 @@ test('WIF export/import round-trip', () => {
   assert.equal(parsed.compressed, true);
   assert.deepEqual(parsed.privateKey, keys.privateKey);
 });
+
+test('generateMnemonic produces valid 24-word phrase by default', () => {
+  const m = MLDSA.generateMnemonic();
+  assert.equal(m.trim().split(/\s+/).length, 24);
+  assert.equal(MLDSA.isValidMnemonic(m), true);
+});
+
+test('generateMnemonic supports 12-word output', () => {
+  const m = MLDSA.generateMnemonic({ words: 12 });
+  assert.equal(m.trim().split(/\s+/).length, 12);
+  assert.equal(MLDSA.isValidMnemonic(m), true);
+});
+
+test('generateMnemonic deterministic from explicit entropy', () => {
+  const entropy = new Uint8Array(32).fill(1);
+  const a = MLDSA.generateMnemonic({ entropy });
+  const b = MLDSA.generateMnemonic({ entropy });
+  assert.equal(a, b);
+  assert.equal(MLDSA.isValidMnemonic(a), true);
+});

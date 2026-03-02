@@ -58,6 +58,21 @@ You can swap `mldsa.min.js` with `mldsa.js` for the non-minified bundle.
 
 ## API
 
+### `MLDSA.generateMnemonic({ words = 24, entropy? })`
+
+- Generates a valid BIP-39 mnemonic phrase.
+- `words` can be: `12`, `15`, `18`, `21`, `24`.
+- Optional `entropy` (`Uint8Array`) enables deterministic mnemonic generation:
+  - 16 bytes => 12 words
+  - 20 bytes => 15 words
+  - 24 bytes => 18 words
+  - 28 bytes => 21 words
+  - 32 bytes => 24 words
+
+### `MLDSA.isValidMnemonic(mnemonic)`
+
+- Returns `true`/`false` for BIP-39 validity checks.
+
 ### `MLDSA.keygen({ level = 65, seed? })`
 
 - `level`: `44 | 65 | 87`
@@ -127,6 +142,9 @@ Use the same BIP-39 mnemonic to derive both classic ECDSA keys and post-quantum 
 
 ```js
 const mnemonic = 'abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon art';
+
+// In production, generate a fresh one:
+// const mnemonic = MLDSA.generateMnemonic({ words: 24 });
 
 const dual = MLDSA.deriveDualStackFromMnemonic({
   mnemonic,
