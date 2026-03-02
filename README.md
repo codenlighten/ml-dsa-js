@@ -76,6 +76,56 @@ Returns signature as bytes and Base64.
 
 Returns boolean.
 
+### Dual-stack mnemonic APIs (ECDSA + PQ)
+
+Use the same BIP-39 mnemonic to derive both classic ECDSA keys and post-quantum ML-DSA keys.
+
+### `MLDSA.keygenFromMnemonic({ mnemonic, passphrase?, level?, path? })`
+
+- Derives a deterministic 32-byte seed from mnemonic + path and generates ML-DSA keys.
+- Defaults to a PQ-specific path based on level:
+  - level 44: `m/44'/9003'/0'/0/0`
+  - level 65: `m/44'/9005'/0'/0/0`
+  - level 87: `m/44'/9007'/0'/0/0`
+
+### `MLDSA.ecdsaKeygenFromMnemonic({ mnemonic, passphrase?, chain?, account?, change?, index?, path? })`
+
+- Derives secp256k1 keypairs and chain-style addresses from the same mnemonic.
+- Supported chains: `bitcoin`, `bsv`, `ethereum`.
+- Default BIP44 paths:
+  - Bitcoin: `m/44'/0'/0'/0/0`
+  - BSV: `m/44'/236'/0'/0/0`
+  - Ethereum: `m/44'/60'/0'/0/0`
+
+### `MLDSA.ecdsaSign(message, privateKey, { hash = 'sha256' })`
+
+- Signs with secp256k1.
+- Returns compact (64-byte) and DER signatures.
+- `hash` supports `sha256` or `keccak256`.
+
+### `MLDSA.ecdsaVerify(signature, message, publicKey, { hash = 'sha256' })`
+
+- Verifies compact or DER ECDSA signatures.
+
+### `MLDSA.deriveDualStackFromMnemonic({ mnemonic, passphrase?, chain?, pqLevel?, ecdsaPath?, pqPath? })`
+
+- Returns both ECDSA and PQ key material in one call.
+
+### Example: one mnemonic, two trees
+
+```js
+const mnemonic = 'abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon art';
+
+const dual = MLDSA.deriveDualStackFromMnemonic({
+  mnemonic,
+  chain: 'ethereum',
+  pqLevel: 65,
+});
+
+console.log('ETH address:', dual.ecdsa.address);
+console.log('PQ public key bytes:', dual.pq.publicKey.length);
+```
+
 ## Security notes
 
 - ML-DSA is post-quantum, but implementation/security still depends on runtime and key management.

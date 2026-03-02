@@ -3,6 +3,9 @@ import assert from 'node:assert/strict';
 
 import MLDSA from '../src/index.js';
 
+const mnemonic24 =
+  'abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon art';
+
 const levels = [44, 65, 87];
 
 for (const level of levels) {
@@ -53,4 +56,62 @@ test('invalid seed length throws', () => {
     () => MLDSA.keygen({ level: 65, seed: new Uint8Array(31) }),
     /seed must be exactly 32 bytes/
   );
+});
+
+test('mnemonic -> ML-DSA deterministic keygen', () => {
+  const a = MLDSA.keygenFromMnemonic({
+    mnemonic: mnemonic24,
+    level: 65,
+  });
+  const b = MLDSA.keygenFromMnemonic({
+    mnemonic: mnemonic24,
+    level: 65,
+  });
+
+  assert.deepEqual(a.publicKey, b.publicKey);
+  assert.deepEqual(a.secretKey, b.secretKey);
+});
+
+test('mnemonic -> ECDSA keygen deterministic ethereum address', () => {
+  const a = MLDSA.ecdsaKeygenFromMnemonic({
+    mnemonic: mnemonic24,
+    chain: 'ethereum',
+  });
+  const b = MLDSA.ecdsaKeygenFromMnemonic({
+    mnemonic: mnemonic24,
+    chain: 'ethereum',
+  });
+
+  assert.equal(a.address, b.address);
+  assert.match(a.address, /^0x[0-9a-f]{40}$/);
+});
+
+test('ECDSA sign/verify round-trip', () => {
+  const keys = MLDSA.ecdsaKeygenFromMnemonic({
+    mnemonic: mnemonic24,
+    chain: 'bitcoin',
+  });
+
+  const msg = 'dual stack signature test';
+  const { signatureCompact, signatureDer } = MLDSA.ecdsaSign(msg, keys.privateKey);
+
+  assert.equal(
+    MLDSA.ecdsaVerify(signatureCompact, msg, keys.publicKeyCompressed),
+    true
+  );
+  assert.equal(
+    MLDSA.ecdsaVerify(signatureDer, msg, keys.publicKeyCompressed),
+    true
+  );
+});
+
+test('deriveDualStackFromMnemonic returns both trees', () => {
+  const dual = MLDSA.deriveDualStackFromMnemonic({
+    mnemonic: mnemonic24,
+    chain: 'bsv',
+    pqLevel: 87,
+  });
+
+  assert.ok(dual.ecdsa.privateKey.length === 32);
+  assert.ok(dual.pq.publicKey.length > 1000);
 });
