@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ML-DSA Browser Example</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        font-family: Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+      }
+      body {
+        margin: 0;
+        background: #0b1020;
+        color: #e7ecff;
+      }
+      .wrap {
+        max-width: 860px;
+        margin: 2rem auto;
+        padding: 1.25rem;
+      }
+      .card {
+        background: #121a33;
+        border: 1px solid #263154;
+        border-radius: 14px;
+        padding: 1rem;
+        margin-bottom: 1rem;
+      }
+      h1 {
+        margin-top: 0;
+        font-size: 1.4rem;
+      }
+      label {
+        display: block;
+        margin: 0.5rem 0 0.25rem;
+        font-weight: 600;
+      }
+      input, select, textarea, button {
+        width: 100%;
+        border: 1px solid #364471;
+        border-radius: 10px;
+        background: #0f1730;
+        color: #e7ecff;
+        padding: 0.7rem;
+        box-sizing: border-box;
+      }
+      textarea {
+        min-height: 110px;
+        resize: vertical;
+      }
+      button {
+        margin-top: 0.75rem;
+        cursor: pointer;
+        font-weight: 700;
+      }
+      .ok { color: #7ee787; font-weight: 700; }
+      .bad { color: #ff7b72; font-weight: 700; }
+      .hint { opacity: 0.8; font-size: 0.9rem; }
+      code { color: #9ecbff; }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <div class="card">
+        <h1>ML-DSA local browser demo</h1>
+        <p class="hint">
+          This page uses your local build from <code>../dist/mldsa.min.js</code>.
+          To use non-minified bundle, replace the script line with
+          <code>../dist/mldsa.js</code>.
+        </p>
+      </div>
+
+      <div class="card">
+        <label for="level">Security Level</label>
+        <select id="level">
+          <option value="44">ML-DSA-44</option>
+          <option value="65" selected>ML-DSA-65</option>
+          <option value="87">ML-DSA-87</option>
+        </select>
+
+        <label for="message">Message</label>
+        <textarea id="message">hello post-quantum web</textarea>
+
+        <button id="run">Generate Keys + Sign + Verify</button>
+      </div>
+
+      <div class="card">
+        <div id="result"></div>
+        <label for="pub">Public Key (Base64)</label>
+        <textarea id="pub" readonly></textarea>
+
+        <label for="sig">Signature (Base64)</label>
+        <textarea id="sig" readonly></textarea>
+      </div>
+    </div>
+
+    <script src="../dist/mldsa.min.js"></script>
+    <!-- For readable bundle during debugging, use: <script src="../dist/mldsa.js"></script> -->
+    <script>
+      const result = document.getElementById('result');
+      const levelEl = document.getElementById('level');
+      const messageEl = document.getElementById('message');
+      const pubEl = document.getElementById('pub');
+      const sigEl = document.getElementById('sig');
+      const runBtn = document.getElementById('run');
+
+      runBtn.addEventListener('click', () => {
+        try {
+          const level = Number(levelEl.value);
+          const message = messageEl.value;
+
+          const { publicKey, secretKey, publicKeyBase64 } = MLDSA.keygen({ level });
+          const { signature, signatureBase64 } = MLDSA.sign(message, secretKey, { level });
+          const valid = MLDSA.verify(signature, message, publicKey, { level });
+
+          pubEl.value = publicKeyBase64;
+          sigEl.value = signatureBase64;
+          result.innerHTML = valid
+            ? '<p class="ok">✅ Signature verified successfully.</p>'
+            : '<p class="bad">❌ Signature verification failed.</p>';
+        } catch (error) {
+          result.innerHTML = `<p class="bad">Error: ${error?.message || error}</p>`;
+        }
+      });
+    </script>
+  </body>
+</html>
