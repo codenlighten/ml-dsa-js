@@ -56,6 +56,29 @@ Pinned to a commit for deterministic builds:
 
 You can swap `mldsa.min.js` with `mldsa.js` for the non-minified bundle.
 
+## Browser usage (blockchain CDN via Whatsonchain plugin)
+
+These are the verified txid-backed URLs (byte-for-byte matched against local `dist/*`):
+
+- `mldsa.min.js`:
+  - `https://plugins.whatsonchain.com/api/plugin/main/3e9de4b67d0955e9f54d7a5c3ea4ff9f1b87d35653fefbdf3b6aae8f31e69400`
+- `mldsa.js`:
+  - `https://plugins.whatsonchain.com/api/plugin/main/a70d82862ca04ed120a4c82bf3e691a22b4aab96b91501ce41fedd7647008e1b`
+- `mldsa.esm.js`:
+  - `https://plugins.whatsonchain.com/api/plugin/main/9682b5d75dfb6c754c774fbd1488d8b11b8c4f5c537a84290ad61187650b6b0b`
+
+IIFE (global `MLDSA`):
+
+```html
+<script src="https://plugins.whatsonchain.com/api/plugin/main/3e9de4b67d0955e9f54d7a5c3ea4ff9f1b87d35653fefbdf3b6aae8f31e69400"></script>
+```
+
+ESM:
+
+```js
+import * as MLDSA from 'https://plugins.whatsonchain.com/api/plugin/main/9682b5d75dfb6c754c774fbd1488d8b11b8c4f5c537a84290ad61187650b6b0b';
+```
+
 ## API
 
 ### `MLDSA.generateMnemonic({ words = 24, entropy? })`
