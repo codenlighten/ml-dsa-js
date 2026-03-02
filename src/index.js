@@ -7,7 +7,7 @@ import { sha256 } from '@noble/hashes/sha2.js';
 import { keccak_256 } from '@noble/hashes/sha3.js';
 import { ripemd160 } from '@noble/hashes/legacy.js';
 import { bytesToHex, hexToBytes } from '@noble/hashes/utils.js';
-import { base58 } from '@scure/base';
+import { base58, bech32 } from '@scure/base';
 
 const variants = {
   44: ml_dsa44,
@@ -66,6 +66,33 @@ function hash256(bytes) {
 function base58checkEncode(payload) {
   const checksum = hash256(payload).slice(0, 4);
   return base58.encode(concatBytes(payload, checksum));
+}
+
+function base58checkDecode(text) {
+  const data = base58.decode(text);
+  if (data.length < 5) throw new Error('Invalid Base58Check payload');
+  const payload = data.slice(0, -4);
+  const checksum = data.slice(-4);
+  const expected = hash256(payload).slice(0, 4);
+  for (let i = 0; i < 4; i += 1) {
+    if (checksum[i] !== expected[i]) throw new Error('Invalid Base58Check checksum');
+  }
+  return payload;
+}
+
+function toEip55Address(lowerHexAddress) {
+  const clean = lowerHexAddress.toLowerCase().replace(/^0x/, '');
+  const hashHex = bytesToHex(keccak_256(encoder.encode(clean)));
+  let out = '0x';
+  for (let i = 0; i < clean.length; i += 1) {
+    const ch = clean[i];
+    if (/[0-9]/.test(ch)) {
+      out += ch;
+      continue;
+    }
+    out += parseInt(hashHex[i], 16) >= 8 ? ch.toUpperCase() : ch;
+  }
+  return out;
 }
 
 function assertMnemonic(mnemonic) {
@@ -215,6 +242,7 @@ export function ecdsaKeygenFromMnemonic(options = {}) {
     mnemonic,
     passphrase = '',
     chain = 'ethereum',
+    addressFormat = chain === 'bitcoin' ? 'p2pkh' : undefined,
     account = 0,
     change = 0,
     index = 0,
@@ -227,19 +255,33 @@ export function ecdsaKeygenFromMnemonic(options = {}) {
   const publicKeyUncompressed = secp256k1.getPublicKey(privateKey, false);
 
   let address;
+  let addressP2PKH;
+  let addressBech32;
   if (chain === 'ethereum') {
     const body = publicKeyUncompressed.slice(1);
     const hash = keccak_256(body);
-    address = `0x${bytesToHex(hash.slice(-20))}`;
+    const lower = `0x${bytesToHex(hash.slice(-20))}`;
+    address = toEip55Address(lower);
   } else {
     const version = new Uint8Array([0x00]);
     const pkHash = ripemd160(sha256(publicKeyCompressed));
-    address = base58checkEncode(concatBytes(version, pkHash));
+    addressP2PKH = base58checkEncode(concatBytes(version, pkHash));
+
+    if (chain === 'bitcoin') {
+      addressBech32 = bech32.encode('bc', bech32.toWords(pkHash));
+      address = addressFormat === 'p2wpkh' ? addressBech32 : addressP2PKH;
+    } else {
+      if (addressFormat && addressFormat !== 'p2pkh') {
+        throw new Error('BSV currently supports addressFormat: p2pkh only');
+      }
+      address = addressP2PKH;
+    }
   }
 
   return {
     chain,
     path,
+    addressFormat,
     privateKey,
     publicKeyCompressed,
     publicKeyUncompressed,
@@ -247,6 +289,43 @@ export function ecdsaKeygenFromMnemonic(options = {}) {
     publicKeyHexCompressed: bytesToHex(publicKeyCompressed),
     publicKeyHexUncompressed: bytesToHex(publicKeyUncompressed),
     address,
+    ...(addressP2PKH ? { addressP2PKH } : {}),
+    ...(addressBech32 ? { addressBech32 } : {}),
+  };
+}
+
+export function ecdsaPrivateKeyToWif(privateKey, options = {}) {
+  const { compressed = true, version = 0x80 } = options;
+  const key = normalizeBytes(privateKey, 'privateKey');
+  if (key.length !== 32) throw new Error('privateKey must be 32 bytes for WIF');
+
+  const prefix = new Uint8Array([version]);
+  const suffix = compressed ? new Uint8Array([0x01]) : new Uint8Array([]);
+  return base58checkEncode(concatBytes(prefix, key, suffix));
+}
+
+export function ecdsaPrivateKeyFromWif(wif) {
+  if (typeof wif !== 'string' || !wif.trim()) throw new Error('wif must be a non-empty string');
+  const payload = base58checkDecode(wif.trim());
+
+  if (payload.length !== 33 && payload.length !== 34) {
+    throw new Error('Invalid WIF payload length');
+  }
+
+  const version = payload[0];
+  const compressed = payload.length === 34;
+  if (compressed && payload[payload.length - 1] !== 0x01) {
+    throw new Error('Invalid compressed WIF marker');
+  }
+
+  const privateKey = payload.slice(1, 33);
+  if (privateKey.length !== 32) throw new Error('Invalid WIF private key length');
+
+  return {
+    version,
+    compressed,
+    privateKey,
+    privateKeyHex: bytesToHex(privateKey),
   };
 }
 
@@ -317,6 +396,7 @@ export function utils() {
     normalizeMessage,
     defaultEcdsaPath,
     defaultPqPath,
+    toEip55Address,
   };
 }
 
@@ -328,11 +408,14 @@ const MLDSA = {
   ecdsaKeygenFromMnemonic,
   ecdsaSign,
   ecdsaVerify,
+  ecdsaPrivateKeyToWif,
+  ecdsaPrivateKeyFromWif,
   deriveDualStackFromMnemonic,
   toBase64,
   fromBase64,
   defaultEcdsaPath,
   defaultPqPath,
+  toEip55Address,
 };
 
 export default MLDSA;

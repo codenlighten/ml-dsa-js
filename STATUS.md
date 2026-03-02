@@ -3,7 +3,7 @@
 ## 1. Project Overview
 This project is a JavaScript browser CDN library for post-quantum ML-DSA signatures (FIPS-204 / Dilithium). The goal is to provide a straightforward API and browser global (`MLDSA`) that developers can load from a CDN for key generation, signing, and verification.
 
-Current status: **Dual-stack mnemonic support (ECDSA + ML-DSA), tests, CI, and repo-hosted `dist` artifacts are enabled.**
+Current status: **Dual-stack mnemonic support (ECDSA + ML-DSA), EIP-55, bech32, WIF helpers, tests, CI, and repo-hosted `dist` artifacts are enabled.**
 
 ## 2. Progress
 Completed:
@@ -28,6 +28,9 @@ Completed:
 - Added mnemonic-based dual-stack API for classic ECDSA + post-quantum ML-DSA key derivation.
 - Added ECDSA helpers (`ecdsaKeygenFromMnemonic`, `ecdsaSign`, `ecdsaVerify`, `deriveDualStackFromMnemonic`).
 - Expanded tests to 12/12 passing, including deterministic mnemonic derivation and dual-stack checks.
+- Added Ethereum EIP-55 checksum address output.
+- Added Bitcoin bech32 (`p2wpkh`) support alongside legacy `p2pkh`.
+- Added WIF export/import helpers for secp256k1 private keys.
 
 Milestone reached:
 - **MVP source and CDN build config complete.**
@@ -41,12 +44,12 @@ Milestone reached:
 ## 4. Next Steps
 1. Keep `dist/` updated in each release commit.
 2. Define final PQ derivation path standardization strategy for interoperability.
-3. Optionally publish package and verify CDN loading through unpkg/jsDelivr.
+3. Optionally add taproot / schnorr support and additional chain formats.
 
 Timeline:
 - Dist artifact updates: every change that affects runtime bundle
 - Path standardization guidance: immediate follow-up
-- Publishing: after versioning/release decision
+- Extended ECDSA format support: short follow-up
 
 ## 5. Team Members
 - Gregory J. Ward — Project owner / CTO / product direction

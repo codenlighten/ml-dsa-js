@@ -83,7 +83,8 @@ test('mnemonic -> ECDSA keygen deterministic ethereum address', () => {
   });
 
   assert.equal(a.address, b.address);
-  assert.match(a.address, /^0x[0-9a-f]{40}$/);
+  assert.match(a.address, /^0x[0-9a-fA-F]{40}$/);
+  assert.notEqual(a.address, a.address.toLowerCase());
 });
 
 test('ECDSA sign/verify round-trip', () => {
@@ -114,4 +115,29 @@ test('deriveDualStackFromMnemonic returns both trees', () => {
 
   assert.ok(dual.ecdsa.privateKey.length === 32);
   assert.ok(dual.pq.publicKey.length > 1000);
+});
+
+test('bitcoin bech32 address support', () => {
+  const keys = MLDSA.ecdsaKeygenFromMnemonic({
+    mnemonic: mnemonic24,
+    chain: 'bitcoin',
+    addressFormat: 'p2wpkh',
+  });
+
+  assert.match(keys.address, /^bc1/);
+  assert.match(keys.addressBech32, /^bc1/);
+  assert.ok(keys.addressP2PKH.length > 20);
+});
+
+test('WIF export/import round-trip', () => {
+  const keys = MLDSA.ecdsaKeygenFromMnemonic({
+    mnemonic: mnemonic24,
+    chain: 'bitcoin',
+  });
+
+  const wif = MLDSA.ecdsaPrivateKeyToWif(keys.privateKey);
+  const parsed = MLDSA.ecdsaPrivateKeyFromWif(wif);
+
+  assert.equal(parsed.compressed, true);
+  assert.deepEqual(parsed.privateKey, keys.privateKey);
 });

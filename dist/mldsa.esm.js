@@ -2142,6 +2142,15 @@ function radix2(bits, revPadding = false) {
     }
   };
 }
+function unsafeWrapper(fn) {
+  afn(fn);
+  return function(...args) {
+    try {
+      return fn.apply(null, args);
+    } catch (e) {
+    }
+  };
+}
 function checksum(len, fn) {
   anumber3(len);
   afn(fn);
@@ -2182,6 +2191,99 @@ var utils = {
 var genBase58 = /* @__NO_SIDE_EFFECTS__ */ (abc) => /* @__PURE__ */ chain(/* @__PURE__ */ radix(58), /* @__PURE__ */ alphabet(abc), /* @__PURE__ */ join(""));
 var base58 = /* @__PURE__ */ genBase58("123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz");
 var createBase58check = (sha2562) => /* @__PURE__ */ chain(checksum(4, (data) => sha2562(sha2562(data))), base58);
+var BECH_ALPHABET = /* @__PURE__ */ chain(/* @__PURE__ */ alphabet("qpzry9x8gf2tvdw0s3jn54khce6mua7l"), /* @__PURE__ */ join(""));
+var POLYMOD_GENERATORS = [996825010, 642813549, 513874426, 1027748829, 705979059];
+function bech32Polymod(pre) {
+  const b = pre >> 25;
+  let chk = (pre & 33554431) << 5;
+  for (let i = 0; i < POLYMOD_GENERATORS.length; i++) {
+    if ((b >> i & 1) === 1)
+      chk ^= POLYMOD_GENERATORS[i];
+  }
+  return chk;
+}
+function bechChecksum(prefix, words, encodingConst = 1) {
+  const len = prefix.length;
+  let chk = 1;
+  for (let i = 0; i < len; i++) {
+    const c = prefix.charCodeAt(i);
+    if (c < 33 || c > 126)
+      throw new Error(`Invalid prefix (${prefix})`);
+    chk = bech32Polymod(chk) ^ c >> 5;
+  }
+  chk = bech32Polymod(chk);
+  for (let i = 0; i < len; i++)
+    chk = bech32Polymod(chk) ^ prefix.charCodeAt(i) & 31;
+  for (let v of words)
+    chk = bech32Polymod(chk) ^ v;
+  for (let i = 0; i < 6; i++)
+    chk = bech32Polymod(chk);
+  chk ^= encodingConst;
+  return BECH_ALPHABET.encode(convertRadix2([chk % powers[30]], 30, 5, false));
+}
+// @__NO_SIDE_EFFECTS__
+function genBech32(encoding) {
+  const ENCODING_CONST = encoding === "bech32" ? 1 : 734539939;
+  const _words = /* @__PURE__ */ radix2(5);
+  const fromWords = _words.decode;
+  const toWords = _words.encode;
+  const fromWordsUnsafe = unsafeWrapper(fromWords);
+  function encode(prefix, words, limit = 90) {
+    astr("bech32.encode prefix", prefix);
+    if (isBytes3(words))
+      words = Array.from(words);
+    anumArr("bech32.encode", words);
+    const plen = prefix.length;
+    if (plen === 0)
+      throw new TypeError(`Invalid prefix length ${plen}`);
+    const actualLength = plen + 7 + words.length;
+    if (limit !== false && actualLength > limit)
+      throw new TypeError(`Length ${actualLength} exceeds limit ${limit}`);
+    const lowered = prefix.toLowerCase();
+    const sum = bechChecksum(lowered, words, ENCODING_CONST);
+    return `${lowered}1${BECH_ALPHABET.encode(words)}${sum}`;
+  }
+  function decode(str, limit = 90) {
+    astr("bech32.decode input", str);
+    const slen = str.length;
+    if (slen < 8 || limit !== false && slen > limit)
+      throw new TypeError(`invalid string length: ${slen} (${str}). Expected (8..${limit})`);
+    const lowered = str.toLowerCase();
+    if (str !== lowered && str !== str.toUpperCase())
+      throw new Error(`String must be lowercase or uppercase`);
+    const sepIndex = lowered.lastIndexOf("1");
+    if (sepIndex === 0 || sepIndex === -1)
+      throw new Error(`Letter "1" must be present between prefix and data only`);
+    const prefix = lowered.slice(0, sepIndex);
+    const data = lowered.slice(sepIndex + 1);
+    if (data.length < 6)
+      throw new Error("Data must be at least 6 characters long");
+    const words = BECH_ALPHABET.decode(data).slice(0, -6);
+    const sum = bechChecksum(prefix, words, ENCODING_CONST);
+    if (!data.endsWith(sum))
+      throw new Error(`Invalid checksum in ${str}: expected "${sum}"`);
+    return { prefix, words };
+  }
+  const decodeUnsafe = unsafeWrapper(decode);
+  function decodeToBytes(str) {
+    const { prefix, words } = decode(str, false);
+    return { prefix, words, bytes: fromWords(words) };
+  }
+  function encodeFromBytes(prefix, bytes) {
+    return encode(prefix, toWords(bytes));
+  }
+  return {
+    encode,
+    decode,
+    encodeFromBytes,
+    decodeToBytes,
+    decodeUnsafe,
+    fromWords,
+    fromWordsUnsafe,
+    toWords
+  };
+}
+var bech32 = /* @__PURE__ */ genBech32("bech32");
 
 // node_modules/@scure/bip39/esm/index.js
 function nfkd(str) {
@@ -6714,6 +6816,31 @@ function base58checkEncode(payload) {
   const checksum2 = hash256(payload).slice(0, 4);
   return base58.encode(concatBytes3(payload, checksum2));
 }
+function base58checkDecode(text) {
+  const data = base58.decode(text);
+  if (data.length < 5) throw new Error("Invalid Base58Check payload");
+  const payload = data.slice(0, -4);
+  const checksum2 = data.slice(-4);
+  const expected = hash256(payload).slice(0, 4);
+  for (let i = 0; i < 4; i += 1) {
+    if (checksum2[i] !== expected[i]) throw new Error("Invalid Base58Check checksum");
+  }
+  return payload;
+}
+function toEip55Address(lowerHexAddress) {
+  const clean3 = lowerHexAddress.toLowerCase().replace(/^0x/, "");
+  const hashHex = bytesToHex(keccak_256(encoder.encode(clean3)));
+  let out = "0x";
+  for (let i = 0; i < clean3.length; i += 1) {
+    const ch = clean3[i];
+    if (/[0-9]/.test(ch)) {
+      out += ch;
+      continue;
+    }
+    out += parseInt(hashHex[i], 16) >= 8 ? ch.toUpperCase() : ch;
+  }
+  return out;
+}
 function assertMnemonic(mnemonic) {
   if (typeof mnemonic !== "string" || mnemonic.trim() === "") {
     throw new Error("mnemonic must be a non-empty string");
@@ -6845,6 +6972,7 @@ function ecdsaKeygenFromMnemonic(options = {}) {
     mnemonic,
     passphrase = "",
     chain: chain2 = "ethereum",
+    addressFormat = chain2 === "bitcoin" ? "p2pkh" : void 0,
     account = 0,
     change = 0,
     index = 0,
@@ -6855,25 +6983,68 @@ function ecdsaKeygenFromMnemonic(options = {}) {
   const publicKeyCompressed = secp256k1.getPublicKey(privateKey, true);
   const publicKeyUncompressed = secp256k1.getPublicKey(privateKey, false);
   let address;
+  let addressP2PKH;
+  let addressBech32;
   if (chain2 === "ethereum") {
     const body = publicKeyUncompressed.slice(1);
     const hash = keccak_256(body);
-    address = `0x${bytesToHex(hash.slice(-20))}`;
+    const lower = `0x${bytesToHex(hash.slice(-20))}`;
+    address = toEip55Address(lower);
   } else {
     const version = new Uint8Array([0]);
     const pkHash = ripemd160(sha256(publicKeyCompressed));
-    address = base58checkEncode(concatBytes3(version, pkHash));
+    addressP2PKH = base58checkEncode(concatBytes3(version, pkHash));
+    if (chain2 === "bitcoin") {
+      addressBech32 = bech32.encode("bc", bech32.toWords(pkHash));
+      address = addressFormat === "p2wpkh" ? addressBech32 : addressP2PKH;
+    } else {
+      if (addressFormat && addressFormat !== "p2pkh") {
+        throw new Error("BSV currently supports addressFormat: p2pkh only");
+      }
+      address = addressP2PKH;
+    }
   }
   return {
     chain: chain2,
     path,
+    addressFormat,
     privateKey,
     publicKeyCompressed,
     publicKeyUncompressed,
     privateKeyHex: bytesToHex(privateKey),
     publicKeyHexCompressed: bytesToHex(publicKeyCompressed),
     publicKeyHexUncompressed: bytesToHex(publicKeyUncompressed),
-    address
+    address,
+    ...addressP2PKH ? { addressP2PKH } : {},
+    ...addressBech32 ? { addressBech32 } : {}
+  };
+}
+function ecdsaPrivateKeyToWif(privateKey, options = {}) {
+  const { compressed = true, version = 128 } = options;
+  const key = normalizeBytes(privateKey, "privateKey");
+  if (key.length !== 32) throw new Error("privateKey must be 32 bytes for WIF");
+  const prefix = new Uint8Array([version]);
+  const suffix = compressed ? new Uint8Array([1]) : new Uint8Array([]);
+  return base58checkEncode(concatBytes3(prefix, key, suffix));
+}
+function ecdsaPrivateKeyFromWif(wif) {
+  if (typeof wif !== "string" || !wif.trim()) throw new Error("wif must be a non-empty string");
+  const payload = base58checkDecode(wif.trim());
+  if (payload.length !== 33 && payload.length !== 34) {
+    throw new Error("Invalid WIF payload length");
+  }
+  const version = payload[0];
+  const compressed = payload.length === 34;
+  if (compressed && payload[payload.length - 1] !== 1) {
+    throw new Error("Invalid compressed WIF marker");
+  }
+  const privateKey = payload.slice(1, 33);
+  if (privateKey.length !== 32) throw new Error("Invalid WIF private key length");
+  return {
+    version,
+    compressed,
+    privateKey,
+    privateKeyHex: bytesToHex(privateKey)
   };
 }
 function ecdsaSign(message, privateKey, options = {}) {
@@ -6934,7 +7105,8 @@ function utils2() {
     fromBase64,
     normalizeMessage,
     defaultEcdsaPath,
-    defaultPqPath
+    defaultPqPath,
+    toEip55Address
   };
 }
 var MLDSA = {
@@ -6945,17 +7117,22 @@ var MLDSA = {
   ecdsaKeygenFromMnemonic,
   ecdsaSign,
   ecdsaVerify,
+  ecdsaPrivateKeyToWif,
+  ecdsaPrivateKeyFromWif,
   deriveDualStackFromMnemonic,
   toBase64,
   fromBase64,
   defaultEcdsaPath,
-  defaultPqPath
+  defaultPqPath,
+  toEip55Address
 };
 var index_default = MLDSA;
 export {
   index_default as default,
   deriveDualStackFromMnemonic,
   ecdsaKeygenFromMnemonic,
+  ecdsaPrivateKeyFromWif,
+  ecdsaPrivateKeyToWif,
   ecdsaSign,
   ecdsaVerify,
   keygen,

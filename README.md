@@ -92,10 +92,14 @@ Use the same BIP-39 mnemonic to derive both classic ECDSA keys and post-quantum 
 
 - Derives secp256k1 keypairs and chain-style addresses from the same mnemonic.
 - Supported chains: `bitcoin`, `bsv`, `ethereum`.
+- `addressFormat` options:
+  - bitcoin: `p2pkh` (default), `p2wpkh` (bech32)
+  - bsv: `p2pkh`
 - Default BIP44 paths:
   - Bitcoin: `m/44'/0'/0'/0/0`
   - BSV: `m/44'/236'/0'/0/0`
   - Ethereum: `m/44'/60'/0'/0/0`
+- Ethereum addresses are returned in EIP-55 checksum format.
 
 ### `MLDSA.ecdsaSign(message, privateKey, { hash = 'sha256' })`
 
@@ -106,6 +110,14 @@ Use the same BIP-39 mnemonic to derive both classic ECDSA keys and post-quantum 
 ### `MLDSA.ecdsaVerify(signature, message, publicKey, { hash = 'sha256' })`
 
 - Verifies compact or DER ECDSA signatures.
+
+### `MLDSA.ecdsaPrivateKeyToWif(privateKey, { compressed = true, version = 0x80 })`
+
+- Exports a 32-byte secp256k1 private key to WIF.
+
+### `MLDSA.ecdsaPrivateKeyFromWif(wif)`
+
+- Parses WIF and returns `{ version, compressed, privateKey, privateKeyHex }`.
 
 ### `MLDSA.deriveDualStackFromMnemonic({ mnemonic, passphrase?, chain?, pqLevel?, ecdsaPath?, pqPath? })`
 
@@ -124,6 +136,22 @@ const dual = MLDSA.deriveDualStackFromMnemonic({
 
 console.log('ETH address:', dual.ecdsa.address);
 console.log('PQ public key bytes:', dual.pq.publicKey.length);
+```
+
+### Example: Bitcoin bech32 + WIF
+
+```js
+const btc = MLDSA.ecdsaKeygenFromMnemonic({
+  mnemonic,
+  chain: 'bitcoin',
+  addressFormat: 'p2wpkh',
+});
+
+const wif = MLDSA.ecdsaPrivateKeyToWif(btc.privateKey);
+const parsed = MLDSA.ecdsaPrivateKeyFromWif(wif);
+
+console.log('bech32:', btc.addressBech32);
+console.log('wif compressed?', parsed.compressed);
 ```
 
 ## Security notes
