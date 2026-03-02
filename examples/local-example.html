@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>ML-DSA Browser Example</title>
+    <title>ML-DSA + ECDSA Dual-Stack Demo</title>
     <style>
       :root {
         color-scheme: dark;
@@ -15,7 +15,7 @@
         color: #e7ecff;
       }
       .wrap {
-        max-width: 860px;
+        max-width: 980px;
         margin: 2rem auto;
         padding: 1.25rem;
       }
@@ -29,6 +29,14 @@
       h1 {
         margin-top: 0;
         font-size: 1.4rem;
+      }
+      .grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 0.8rem;
+      }
+      @media (max-width: 850px) {
+        .grid { grid-template-columns: 1fr; }
       }
       label {
         display: block;
@@ -45,7 +53,7 @@
         box-sizing: border-box;
       }
       textarea {
-        min-height: 110px;
+        min-height: 105px;
         resize: vertical;
       }
       button {
@@ -62,35 +70,62 @@
   <body>
     <div class="wrap">
       <div class="card">
-        <h1>ML-DSA local browser demo</h1>
+        <h1>Local dual-stack demo (PQ + ECDSA)</h1>
         <p class="hint">
-          This page uses your local build from <code>../dist/mldsa.min.js</code>.
-          To use non-minified bundle, replace the script line with
-          <code>../dist/mldsa.js</code>.
+          Uses your local bundle: <code>../dist/mldsa.min.js</code>.
+          Swap to <code>../dist/mldsa.js</code> for non-minified debugging.
         </p>
       </div>
 
       <div class="card">
-        <label for="level">Security Level</label>
+        <div class="grid">
+          <div>
+            <label for="chain">ECDSA Chain</label>
+            <select id="chain">
+              <option value="ethereum" selected>Ethereum (EIP-55)</option>
+              <option value="bitcoin">Bitcoin</option>
+              <option value="bsv">BSV</option>
+            </select>
+          </div>
+          <div>
+            <label for="addressFormat">Bitcoin Address Format</label>
+            <select id="addressFormat">
+              <option value="p2pkh" selected>P2PKH (legacy)</option>
+              <option value="p2wpkh">P2WPKH (bech32)</option>
+            </select>
+          </div>
+        </div>
+
+        <label for="level">ML-DSA Security Level</label>
         <select id="level">
           <option value="44">ML-DSA-44</option>
           <option value="65" selected>ML-DSA-65</option>
           <option value="87">ML-DSA-87</option>
         </select>
 
-        <label for="message">Message</label>
-        <textarea id="message">hello post-quantum web</textarea>
+        <label for="mnemonic">24-word BIP39 mnemonic</label>
+        <textarea id="mnemonic">abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon art</textarea>
 
-        <button id="run">Generate Keys + Sign + Verify</button>
+        <label for="message">Message</label>
+        <textarea id="message">quantum-safe migration starts now</textarea>
+
+        <button id="run">Derive Keys + Sign + Verify</button>
       </div>
 
       <div class="card">
         <div id="result"></div>
-        <label for="pub">Public Key (Base64)</label>
-        <textarea id="pub" readonly></textarea>
 
-        <label for="sig">Signature (Base64)</label>
-        <textarea id="sig" readonly></textarea>
+        <label for="ecdsaAddress">ECDSA Address</label>
+        <textarea id="ecdsaAddress" readonly></textarea>
+
+        <label for="wif">WIF (from ECDSA private key)</label>
+        <textarea id="wif" readonly></textarea>
+
+        <label for="pqPub">PQ Public Key (Base64)</label>
+        <textarea id="pqPub" readonly></textarea>
+
+        <label for="pqSig">PQ Signature (Base64)</label>
+        <textarea id="pqSig" readonly></textarea>
       </div>
     </div>
 
@@ -98,26 +133,69 @@
     <!-- For readable bundle during debugging, use: <script src="../dist/mldsa.js"></script> -->
     <script>
       const result = document.getElementById('result');
+      const chainEl = document.getElementById('chain');
+      const addressFormatEl = document.getElementById('addressFormat');
       const levelEl = document.getElementById('level');
+      const mnemonicEl = document.getElementById('mnemonic');
       const messageEl = document.getElementById('message');
-      const pubEl = document.getElementById('pub');
-      const sigEl = document.getElementById('sig');
+      const ecdsaAddressEl = document.getElementById('ecdsaAddress');
+      const wifEl = document.getElementById('wif');
+      const pqPubEl = document.getElementById('pqPub');
+      const pqSigEl = document.getElementById('pqSig');
       const runBtn = document.getElementById('run');
+
+      function syncAddressFormatAvailability() {
+        addressFormatEl.disabled = chainEl.value !== 'bitcoin';
+      }
+
+      chainEl.addEventListener('change', syncAddressFormatAvailability);
+      syncAddressFormatAvailability();
 
       runBtn.addEventListener('click', () => {
         try {
+          const chain = chainEl.value;
+          const addressFormat = addressFormatEl.value;
           const level = Number(levelEl.value);
+          const mnemonic = mnemonicEl.value.trim();
           const message = messageEl.value;
 
-          const { publicKey, secretKey, publicKeyBase64 } = MLDSA.keygen({ level });
-          const { signature, signatureBase64 } = MLDSA.sign(message, secretKey, { level });
-          const valid = MLDSA.verify(signature, message, publicKey, { level });
+          const ecdsa = MLDSA.ecdsaKeygenFromMnemonic({
+            mnemonic,
+            chain,
+            ...(chain === 'bitcoin' ? { addressFormat } : {}),
+          });
+          const pq = MLDSA.keygenFromMnemonic({ mnemonic, level });
 
-          pubEl.value = publicKeyBase64;
-          sigEl.value = signatureBase64;
-          result.innerHTML = valid
-            ? '<p class="ok">✅ Signature verified successfully.</p>'
-            : '<p class="bad">❌ Signature verification failed.</p>';
+          const pqSigned = MLDSA.sign(message, pq.secretKey, { level });
+          const pqValid = MLDSA.verify(pqSigned.signature, message, pq.publicKey, { level });
+
+          const ecdsaSigned = MLDSA.ecdsaSign(message, ecdsa.privateKey, {
+            hash: chain === 'ethereum' ? 'keccak256' : 'sha256',
+          });
+          const ecdsaValid = MLDSA.ecdsaVerify(
+            ecdsaSigned.signatureCompact,
+            message,
+            ecdsa.publicKeyCompressed,
+            { hash: chain === 'ethereum' ? 'keccak256' : 'sha256' }
+          );
+
+          const wif = MLDSA.ecdsaPrivateKeyToWif(ecdsa.privateKey);
+          const parsed = MLDSA.ecdsaPrivateKeyFromWif(wif);
+
+          ecdsaAddressEl.value = [
+            `address: ${ecdsa.address}`,
+            ecdsa.addressP2PKH ? `p2pkh: ${ecdsa.addressP2PKH}` : '',
+            ecdsa.addressBech32 ? `bech32: ${ecdsa.addressBech32}` : '',
+          ].filter(Boolean).join('\n');
+
+          wifEl.value = `${wif}\n\nparsed.compressed: ${parsed.compressed}`;
+          pqPubEl.value = pq.publicKeyBase64;
+          pqSigEl.value = pqSigned.signatureBase64;
+
+          const ok = pqValid && ecdsaValid;
+          result.innerHTML = ok
+            ? '<p class="ok">✅ PQ and ECDSA signatures verified. Dual-stack ready.</p>'
+            : '<p class="bad">❌ Verification failed for one or both signature types.</p>';
         } catch (error) {
           result.innerHTML = `<p class="bad">Error: ${error?.message || error}</p>`;
         }
