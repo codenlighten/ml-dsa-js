@@ -161,6 +161,62 @@ Use the same BIP-39 mnemonic to derive both classic ECDSA keys and post-quantum 
 
 - Returns both ECDSA and PQ key material in one call.
 
+### Role-based derivation APIs (SmartLedger-ready)
+
+### `MLDSA.ROLE`
+
+Role constants:
+
+- `identity`
+- `finance`
+- `token`
+- `governance`
+- `rewards`
+- `referralAttest`
+- `claimAuth`
+- `riskReview`
+
+### `MLDSA.defaultRolePaths({ chain = 'bsv', account = 0, index = 0, purpose = 100 })`
+
+Returns canonical hardened role paths using:
+
+- `m/{purpose}'/{coinType}'/{roleIndex}'/{account}/{index}`
+
+Example (BSV):
+
+- identity: `m/100'/236'/0'/0/0`
+- finance: `m/100'/236'/1'/0/0`
+
+### `MLDSA.deriveRoleKeysFromMnemonic(options)`
+
+Derives deterministic ECDSA keys for all roles plus one paired PQ key.
+
+Core options:
+
+- `mnemonic`, `passphrase`
+- `chain`, `account`, `index`, `purpose`
+- `level` (PQ level: 44/65/87)
+- `pqRole` (defaults to `identity`)
+- `paths` (optional per-role/path overrides)
+- `addressFormat` / `addressFormatByRole` (for bitcoin roles)
+
+Returns:
+
+- `roles.identity|finance|token|governance|rewards|referralAttest|claimAuth|riskReview`
+- each role includes standard ECDSA fields plus `wif`
+- `pq` bundle includes `role`, `level`, and `path`
+
+### `MLDSA.buildIdentityId({ ecdsaIdentityPubKey, pqPublicKey, version = 'v1', domain = 'smartledger.identity' })`
+
+Builds a deterministic, domain-separated SHA-256 identity identifier.
+
+Returns:
+
+- `bytes`
+- `hex`
+- `base64`
+- `base64url`
+
 ### Example: one mnemonic, two trees
 
 ```js

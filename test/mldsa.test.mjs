@@ -161,3 +161,96 @@ test('generateMnemonic deterministic from explicit entropy', () => {
   assert.equal(a, b);
   assert.equal(MLDSA.isValidMnemonic(a), true);
 });
+
+test('defaultRolePaths returns hardened canonical role paths', () => {
+  const paths = MLDSA.defaultRolePaths({ chain: 'bsv', account: 2, index: 9, purpose: 100 });
+  assert.equal(paths.identityPath, "m/100'/236'/0'/2/9");
+  assert.equal(paths.financePath, "m/100'/236'/1'/2/9");
+  assert.equal(paths.tokenPath, "m/100'/236'/2'/2/9");
+  assert.equal(paths.governancePath, "m/100'/236'/3'/2/9");
+  assert.equal(paths.rewardsPath, "m/100'/236'/4'/2/9");
+  assert.equal(paths.referralAttestPath, "m/100'/236'/5'/2/9");
+  assert.equal(paths.claimAuthPath, "m/100'/236'/6'/2/9");
+  assert.equal(paths.riskReviewPath, "m/100'/236'/7'/2/9");
+});
+
+test('deriveRoleKeysFromMnemonic is deterministic for same inputs', () => {
+  const a = MLDSA.deriveRoleKeysFromMnemonic({
+    mnemonic: mnemonic24,
+    chain: 'bitcoin',
+    index: 1,
+    level: 65,
+    addressFormat: 'p2wpkh',
+  });
+  const b = MLDSA.deriveRoleKeysFromMnemonic({
+    mnemonic: mnemonic24,
+    chain: 'bitcoin',
+    index: 1,
+    level: 65,
+    addressFormat: 'p2wpkh',
+  });
+
+  assert.equal(a.roles.identity.address, b.roles.identity.address);
+  assert.equal(a.roles.finance.address, b.roles.finance.address);
+  assert.deepEqual(a.pq.publicKey, b.pq.publicKey);
+  assert.equal(a.pq.path, b.pq.path);
+});
+
+test('deriveRoleKeysFromMnemonic produces distinct role keys', () => {
+  const out = MLDSA.deriveRoleKeysFromMnemonic({
+    mnemonic: mnemonic24,
+    chain: 'bsv',
+    level: 87,
+  });
+
+  assert.notEqual(out.roles.identity.address, out.roles.finance.address);
+  assert.notEqual(out.roles.token.address, out.roles.governance.address);
+  assert.match(out.roles.identity.wif, /^[KL5]/);
+  assert.equal(out.pq.role, 'identity');
+});
+
+test('deriveRoleKeysFromMnemonic supports path overrides', () => {
+  const out = MLDSA.deriveRoleKeysFromMnemonic({
+    mnemonic: mnemonic24,
+    chain: 'bsv',
+    paths: {
+      identityPath: "m/44'/236'/7'/0/3",
+    },
+  });
+
+  assert.equal(out.roles.identity.path, "m/44'/236'/7'/0/3");
+  assert.equal(out.roles.finance.path, "m/100'/236'/1'/0/0");
+});
+
+test('buildIdentityId deterministic and domain-separated', () => {
+  const derived = MLDSA.deriveRoleKeysFromMnemonic({
+    mnemonic: mnemonic24,
+    chain: 'bsv',
+    level: 65,
+  });
+
+  const a = MLDSA.buildIdentityId({
+    ecdsaIdentityPubKey: derived.roles.identity.publicKeyCompressed,
+    pqPublicKey: derived.pq.publicKey,
+    version: 'v1',
+    domain: 'smartledger.identity',
+  });
+
+  const b = MLDSA.buildIdentityId({
+    ecdsaIdentityPubKey: derived.roles.identity.publicKeyCompressed,
+    pqPublicKey: derived.pq.publicKey,
+    version: 'v1',
+    domain: 'smartledger.identity',
+  });
+
+  const c = MLDSA.buildIdentityId({
+    ecdsaIdentityPubKey: derived.roles.identity.publicKeyCompressed,
+    pqPublicKey: derived.pq.publicKey,
+    version: 'v2',
+    domain: 'smartledger.identity',
+  });
+
+  assert.equal(a.hex, b.hex);
+  assert.notEqual(a.hex, c.hex);
+  assert.match(a.base64url, /^[A-Za-z0-9_-]+$/);
+});

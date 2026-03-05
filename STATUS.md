@@ -32,6 +32,13 @@ Completed:
 - Added Bitcoin bech32 (`p2wpkh`) support alongside legacy `p2pkh`.
 - Added WIF export/import helpers for secp256k1 private keys.
 - Added user-facing mnemonic generation and validation APIs (`generateMnemonic`, `isValidMnemonic`).
+- Added role-based derivation APIs:
+  - `ROLE` constants for canonical app roles
+  - `defaultRolePaths()` hardened role path helper
+  - `deriveRoleKeysFromMnemonic()` multi-role deterministic derivation
+  - `buildIdentityId()` domain-separated SHA-256 identity identifier helper
+- Expanded tests for role path derivation, deterministic role-key generation, path overrides, and identity ID determinism.
+- Updated README with role-based API docs and usage guidance.
 
 Milestone reached:
 - **MVP source and CDN build config complete.**
@@ -44,7 +51,7 @@ Milestone reached:
 
 ## 4. Next Steps
 1. Keep `dist/` updated in each release commit.
-2. Define final PQ derivation path standardization strategy for interoperability.
+2. Define and freeze conformance vectors for role-based derivation (`test/vectors/role-derivation.v1.json`).
 3. Optionally add taproot / schnorr support and additional chain formats.
 
 Timeline:

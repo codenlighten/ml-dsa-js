@@ -32,6 +32,30 @@ const pqCoinTypes = {
   87: 9007,
 };
 
+const ROLE = Object.freeze({
+  IDENTITY: 'identity',
+  FINANCE: 'finance',
+  TOKEN: 'token',
+  GOVERNANCE: 'governance',
+  REWARDS: 'rewards',
+  REFERRAL_ATTEST: 'referralAttest',
+  CLAIM_AUTH: 'claimAuth',
+  RISK_REVIEW: 'riskReview',
+});
+
+const roleIndices = Object.freeze({
+  [ROLE.IDENTITY]: 0,
+  [ROLE.FINANCE]: 1,
+  [ROLE.TOKEN]: 2,
+  [ROLE.GOVERNANCE]: 3,
+  [ROLE.REWARDS]: 4,
+  [ROLE.REFERRAL_ATTEST]: 5,
+  [ROLE.CLAIM_AUTH]: 6,
+  [ROLE.RISK_REVIEW]: 7,
+});
+
+const roleList = Object.freeze(Object.keys(roleIndices));
+
 const encoder = new TextEncoder();
 
 function getVariant(level = 65) {
@@ -149,6 +173,18 @@ function assertChain(chain) {
   }
 }
 
+function assertRole(role) {
+  if (!roleIndices[role] && roleIndices[role] !== 0) {
+    throw new Error(`Unsupported role: ${role}. Use one of: ${roleList.join(', ')}.`);
+  }
+}
+
+function assertNonNegativeSafeInteger(value, label) {
+  if (!Number.isSafeInteger(value) || value < 0) {
+    throw new Error(`${label} must be a non-negative safe integer`);
+  }
+}
+
 function defaultEcdsaPath(chain, account = 0, change = 0, index = 0) {
   assertChain(chain);
   const coinType = chainCoinTypes[chain];
@@ -161,6 +197,50 @@ function defaultPqPath(level = 65, account = 0, change = 0, index = 0) {
     throw new Error(`Unsupported ML-DSA level for path: ${level}. Use 44, 65, or 87.`);
   }
   return `m/44'/${coinType}'/${account}'/${change}/${index}`;
+}
+
+function defaultRolePath(role, chain = 'bsv', account = 0, index = 0, purpose = 100) {
+  assertRole(role);
+  assertChain(chain);
+  assertNonNegativeSafeInteger(account, 'account');
+  assertNonNegativeSafeInteger(index, 'index');
+  assertNonNegativeSafeInteger(purpose, 'purpose');
+  const coinType = chainCoinTypes[chain];
+  const roleIndex = roleIndices[role];
+  return `m/${purpose}'/${coinType}'/${roleIndex}'/${account}/${index}`;
+}
+
+function defaultPqRolePath(level = 65, role = ROLE.IDENTITY, account = 0, index = 0, purpose = 100) {
+  assertRole(role);
+  assertNonNegativeSafeInteger(account, 'account');
+  assertNonNegativeSafeInteger(index, 'index');
+  assertNonNegativeSafeInteger(purpose, 'purpose');
+  const coinType = pqCoinTypes[level];
+  if (!coinType) {
+    throw new Error(`Unsupported ML-DSA level for path: ${level}. Use 44, 65, or 87.`);
+  }
+  const roleIndex = roleIndices[role];
+  return `m/${purpose}'/${coinType}'/${roleIndex}'/${account}/${index}`;
+}
+
+export function defaultRolePaths(options = {}) {
+  const {
+    chain = 'bsv',
+    account = 0,
+    index = 0,
+    purpose = 100,
+  } = options;
+
+  return {
+    identityPath: defaultRolePath(ROLE.IDENTITY, chain, account, index, purpose),
+    financePath: defaultRolePath(ROLE.FINANCE, chain, account, index, purpose),
+    tokenPath: defaultRolePath(ROLE.TOKEN, chain, account, index, purpose),
+    governancePath: defaultRolePath(ROLE.GOVERNANCE, chain, account, index, purpose),
+    rewardsPath: defaultRolePath(ROLE.REWARDS, chain, account, index, purpose),
+    referralAttestPath: defaultRolePath(ROLE.REFERRAL_ATTEST, chain, account, index, purpose),
+    claimAuthPath: defaultRolePath(ROLE.CLAIM_AUTH, chain, account, index, purpose),
+    riskReviewPath: defaultRolePath(ROLE.RISK_REVIEW, chain, account, index, purpose),
+  };
 }
 
 function deriveNodeFromMnemonic(mnemonic, passphrase, path) {
@@ -207,6 +287,10 @@ function fromBase64(b64) {
     return new Uint8Array(Buffer.from(normalized, 'base64'));
   }
   throw new Error('No base64 decoder available in this runtime');
+}
+
+function toBase64Url(bytes) {
+  return toBase64(bytes).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '');
 }
 
 export function keygen(options = {}) {
@@ -428,6 +512,121 @@ export function deriveDualStackFromMnemonic(options = {}) {
   };
 }
 
+function rolePathKey(role) {
+  if (role === ROLE.IDENTITY) return 'identityPath';
+  if (role === ROLE.FINANCE) return 'financePath';
+  if (role === ROLE.TOKEN) return 'tokenPath';
+  if (role === ROLE.GOVERNANCE) return 'governancePath';
+  if (role === ROLE.REWARDS) return 'rewardsPath';
+  if (role === ROLE.REFERRAL_ATTEST) return 'referralAttestPath';
+  if (role === ROLE.CLAIM_AUTH) return 'claimAuthPath';
+  if (role === ROLE.RISK_REVIEW) return 'riskReviewPath';
+  throw new Error(`Unsupported role: ${role}. Use one of: ${roleList.join(', ')}.`);
+}
+
+export function deriveRoleKeysFromMnemonic(options = {}) {
+  const {
+    mnemonic,
+    passphrase = '',
+    chain = 'bsv',
+    account = 0,
+    index = 0,
+    purpose = 100,
+    level = 65,
+    pqRole = ROLE.IDENTITY,
+    addressFormat,
+    addressFormatByRole,
+    paths = {},
+  } = options;
+
+  assertRole(pqRole);
+  assertChain(chain);
+
+  const defaults = defaultRolePaths({ chain, account, index, purpose });
+  const roles = {};
+
+  for (const role of roleList) {
+    const pathKey = rolePathKey(role);
+    const overridePath = paths[pathKey] ?? paths[role];
+    const path = overridePath || defaults[pathKey];
+    const roleAddressFormat = (addressFormatByRole && addressFormatByRole[role]) || addressFormat;
+
+    const ecdsa = ecdsaKeygenFromMnemonic({
+      mnemonic,
+      passphrase,
+      chain,
+      path,
+      ...(chain === 'bitcoin' && roleAddressFormat ? { addressFormat: roleAddressFormat } : {}),
+    });
+
+    roles[role] = {
+      ...ecdsa,
+      role,
+      wif: ecdsaPrivateKeyToWif(ecdsa.privateKey),
+    };
+  }
+
+  const pqPath = paths.pqPath || defaultPqRolePath(level, pqRole, account, index, purpose);
+  const pq = keygenFromMnemonic({
+    mnemonic,
+    passphrase,
+    level,
+    path: pqPath,
+  });
+
+  return {
+    chain,
+    account,
+    index,
+    purpose,
+    roles,
+    pq: {
+      ...pq,
+      role: pqRole,
+      level,
+      path: pqPath,
+    },
+  };
+}
+
+export function buildIdentityId(options = {}) {
+  const {
+    ecdsaIdentityPubKey,
+    pqPublicKey,
+    version = 'v1',
+    domain = 'smartledger.identity',
+  } = options;
+
+  if (typeof version !== 'string' || !version.trim()) {
+    throw new Error('version must be a non-empty string');
+  }
+  if (typeof domain !== 'string' || !domain.trim()) {
+    throw new Error('domain must be a non-empty string');
+  }
+
+  const ecdsaPub = normalizeBytes(ecdsaIdentityPubKey, 'ecdsaIdentityPubKey');
+  const pqPub = normalizeBytes(pqPublicKey, 'pqPublicKey');
+
+  const sep = new Uint8Array([0]);
+  const preimage = concatBytes(
+    encoder.encode(domain.trim()),
+    sep,
+    encoder.encode(version.trim()),
+    sep,
+    ecdsaPub,
+    sep,
+    pqPub
+  );
+
+  const bytes = sha256(preimage);
+  return {
+    bytes,
+    hex: bytesToHex(bytes),
+    base64: toBase64(bytes),
+    base64url: toBase64Url(bytes),
+  };
+}
+
 export function utils() {
   return {
     toBase64,
@@ -435,8 +634,11 @@ export function utils() {
     normalizeMessage,
     defaultEcdsaPath,
     defaultPqPath,
+    defaultRolePaths,
     toEip55Address,
     wordsToStrength,
+    ROLE,
+    roleIndices,
   };
 }
 
@@ -453,11 +655,15 @@ const MLDSA = {
   ecdsaPrivateKeyToWif,
   ecdsaPrivateKeyFromWif,
   deriveDualStackFromMnemonic,
+  deriveRoleKeysFromMnemonic,
+  buildIdentityId,
   toBase64,
   fromBase64,
   defaultEcdsaPath,
   defaultPqPath,
+  defaultRolePaths,
   toEip55Address,
+  ROLE,
 };
 
 export default MLDSA;
