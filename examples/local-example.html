@@ -71,10 +71,12 @@
     <div class="wrap">
       <div class="card">
         <h1>Local dual-stack demo (PQ + ECDSA)</h1>
-        <p class="hint">
+        <!-- <p class="hint">
           Uses your local bundle: <code>../dist/mldsa.min.js</code>.
           Swap to <code>../dist/mldsa.js</code> for non-minified debugging.
-        </p>
+        </p> -->
+         <p>
+             This demo derives both ECDSA and ML-DSA keys from the same BIP39 mnemonic, then signs and verifies a message with both schemes. Use the controls to customize the ECDSA chain (Bitcoin, Ethereum, or BSV), Bitcoin address format (legacy P2PKH or bech32), ML-DSA security level (44, 65, or 87), and the message to sign. You can also generate a new random mnemonic with the "Generate New Mnemonic" button. After clicking "Derive Keys + Sign + Verify", the results will show the derived ECDSA address, WIF-encoded private key, ML-DSA public key and signature (both in Base64), and whether verification succeeded for both signature types. This demonstrates how ML-DSA can be used alongside ECDSA for a dual-stack approach to quantum-safe migration. CDN is verifiable and onchain.
       </div>
 
       <div class="card">
@@ -143,7 +145,7 @@
       </div>
     </div>
 
-    <script src="../dist/mldsa.min.js"></script>
+    <script src="https://plugins.whatsonchain.com/api/plugin/main/3e9de4b67d0955e9f54d7a5c3ea4ff9f1b87d35653fefbdf3b6aae8f31e69400"></script>
     <!-- For readable bundle during debugging, use: <script src="../dist/mldsa.js"></script> -->
     <script>
       const result = document.getElementById('result');
