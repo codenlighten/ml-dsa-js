@@ -1,8 +1,17 @@
 {
   "name": "ml-dsa-browser-cdn",
   "version": "0.2.0",
-  "description": "Browser CDN bundle for post-quantum ML-DSA signatures",
+  "description": "Browser CDN bundle for post-quantum ML-DSA signatures (FIPS-204) with dual-stack ECDSA, mnemonic derivation, and role-based key management.",
   "type": "module",
+  "author": "Gregory J. Ward <codenlighten1@gmail.com>",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/codenlighten/ml-dsa-js.git"
+  },
+  "homepage": "https://github.com/codenlighten/ml-dsa-js#readme",
+  "bugs": {
+    "url": "https://github.com/codenlighten/ml-dsa-js/issues"
+  },
   "main": "dist/mldsa.esm.js",
   "exports": {
     ".": {
@@ -18,7 +27,10 @@
   "files": [
     "dist",
     "src",
-    "README.md"
+    "README.md",
+    "CHANGELOG.md",
+    "SECURITY.md",
+    "LICENSE"
   ],
   "scripts": {
     "build": "node scripts/build.mjs",

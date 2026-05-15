@@ -1,31 +1,56 @@
 # ML-DSA Browser CDN
 
-A JavaScript browser-friendly CDN bundle for **post-quantum ML-DSA signatures** (FIPS-204 / Dilithium) using `@noble/post-quantum`.
+A JavaScript browser-friendly CDN bundle for **post-quantum ML-DSA signatures** (FIPS-204 / Dilithium) plus classic **ECDSA dual-stack**, **BIP-39 mnemonic derivation**, and **role-based key management**. Built on `@noble/post-quantum`, `@noble/curves`, and `@scure/*`.
+
+> See [`SECURITY.md`](SECURITY.md) before deploying. This library handles signing keys; the trust model matters.
 
 ## What this provides
 
-- `MLDSA.keygen()` for key generation
-- `MLDSA.sign()` for signature creation
-- `MLDSA.verify()` for signature verification
-- Support for ML-DSA levels: `44`, `65`, `87`
-- Build outputs for CDN:
-  - `dist/mldsa.js` (IIFE, global `MLDSA`)
-  - `dist/mldsa.min.js` (minified IIFE, global `MLDSA`)
-  - `dist/mldsa.esm.js` (ESM)
+- ML-DSA: `keygen`, `sign`, `verify` for levels `44`, `65`, `87`.
+- ECDSA (secp256k1): keygen / sign / verify, plus address derivation for Bitcoin (P2PKH + bech32), BSV (P2PKH), and Ethereum (EIP-55).
+- BIP-39 mnemonic generation and validation.
+- Deterministic dual-stack derivation (ECDSA + ML-DSA) from a single mnemonic.
+- Role-based derivation (`identity`, `finance`, `token`, `governance`, `rewards`, `referralAttest`, `claimAuth`, `riskReview`) with frozen v1 conformance vectors.
+- `buildIdentityId`: domain-separated SHA-256 identity identifier over an ECDSA + ML-DSA pair.
+- Build outputs for the browser:
+  - `dist/mldsa.js` — IIFE, global `MLDSA`
+  - `dist/mldsa.min.js` — minified IIFE, global `MLDSA`
+  - `dist/mldsa.esm.js` — ESM
 
 ## Install
 
+### As an npm dependency (Node, bundler, or modern browser)
+
 ```bash
-npm install
-npm run build
-npm test
+npm install ml-dsa-browser-cdn
 ```
 
-## Local validation
+```js
+import MLDSA from 'ml-dsa-browser-cdn';
+// or the minified IIFE bundle via the explicit subpath:
+// import 'ml-dsa-browser-cdn/browser';
+```
 
-- `npm run build` builds CDN artifacts.
-- `npm test` runs round-trip tests for ML-DSA levels 44/65/87 and input edge cases.
-- `npm run check` runs both build and tests.
+### From a CDN (no install)
+
+See [Browser usage](#browser-usage-cdn) below for `unpkg`, `jsDelivr`, and on-chain `Whatsonchain` plugin URLs.
+
+### Local development
+
+```bash
+git clone https://github.com/codenlighten/ml-dsa-js
+cd ml-dsa-js
+npm install
+npm run check    # build + test
+```
+
+Scripts:
+
+- `npm run build` — build `dist/*` CDN artifacts.
+- `npm test` — run `node:test` suite (32 tests, including conformance vectors).
+- `npm run check` — build + test.
+- `npm run gen-vectors` — regenerate `test/vectors/role-derivation.v1.json`.
+- `npm run proxy:dev` — start the example SimpleBSV proxy (`ADMIN_API_KEY` required).
 
 ## Browser usage (CDN)
 
@@ -251,12 +276,22 @@ console.log('bech32:', btc.addressBech32);
 console.log('wif compressed?', parsed.compressed);
 ```
 
+## Conformance vectors
+
+Frozen v1 vectors live at [`test/vectors/role-derivation.v1.json`](test/vectors/role-derivation.v1.json), covering the `chain × ML-DSA-level` matrix (`bitcoin` / `bsv` / `ethereum` × `44` / `65` / `87`). Third-party ports can use these for byte-for-byte verification of role-derivation, role addresses, ML-DSA public keys, and `buildIdentityId` output. Regenerate via `npm run gen-vectors` if the scheme intentionally changes.
+
 ## Security notes
 
 - ML-DSA is post-quantum, but implementation/security still depends on runtime and key management.
-- Treat secret keys as sensitive and never expose them in frontend production apps.
-- For production architecture, perform signing in trusted server or secure enclave components whenever possible.
+- Treat secret keys — especially BIP-39 mnemonics — as sensitive and never expose them in frontend production apps.
+- For production architecture, perform signing in a trusted server, secure enclave, or hardware wallet whenever possible. The browser is an untrusted environment.
+
+For reporting vulnerabilities, see [`SECURITY.md`](SECURITY.md).
+
+## Changelog
+
+See [`CHANGELOG.md`](CHANGELOG.md).
 
 ## License
 
-MIT
+[MIT](LICENSE) © Gregory J. Ward
