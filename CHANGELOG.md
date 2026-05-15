@@ -6,6 +6,12 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [0.2.0] — 2026-05-15
 
+### Changed
+- **Package renamed to `@smartledger.technology/ml-dsa`** (was `ml-dsa-browser-cdn`).
+  No prior version was ever published to npm under the old name, so this is
+  a rename rather than a breaking change to existing consumers. The GitHub
+  repository remains `codenlighten/ml-dsa-js`.
+
 ### Added
 - v1 conformance vectors at `test/vectors/role-derivation.v1.json`, covering the
   chain × ML-DSA-level matrix (`bitcoin` / `bsv` / `ethereum` × `44` / `65` / `87`).
@@ -15,8 +21,8 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - `npm run gen-vectors` script for regenerating frozen vectors if the scheme
   changes.
 - `exports` map in `package.json` so Node and bundler consumers can import the
-  package via `import 'ml-dsa-browser-cdn'`, `'ml-dsa-browser-cdn/browser'`, or
-  `'ml-dsa-browser-cdn/dist/*'`.
+  package via `import '@smartledger.technology/ml-dsa'`, `'@smartledger.technology/ml-dsa/browser'`, or
+  `'@smartledger.technology/ml-dsa/dist/*'`.
 - `engines.node >= 18` declaration (required for `node:test`).
 - Attribution banner at the top of every `dist/*` bundle:
   `Gregory J. Ward, CTO SmartLedger.Technology — MIT`. Note that this rebuilds

@@ -1,5 +1,5 @@
 {
-  "name": "ml-dsa-browser-cdn",
+  "name": "@smartledger.technology/ml-dsa",
   "version": "0.2.0",
   "description": "Browser CDN bundle for post-quantum ML-DSA signatures (FIPS-204) with dual-stack ECDSA, mnemonic derivation, and role-based key management.",
   "type": "module",

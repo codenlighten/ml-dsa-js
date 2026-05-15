@@ -1,6 +1,6 @@
 # Security policy
 
-`ml-dsa-browser-cdn` is a cryptography library. Take vulnerability reports
+`@smartledger.technology/ml-dsa` is a cryptography library. Take vulnerability reports
 seriously and report them privately.
 
 ## Reporting a vulnerability
@@ -13,7 +13,7 @@ Please include:
 
 - A description of the issue and its impact.
 - Steps to reproduce, or a proof-of-concept.
-- The affected version (`npm ls ml-dsa-browser-cdn`, the CDN URL, or the
+- The affected version (`npm ls @smartledger.technology/ml-dsa`, the CDN URL, or the
   commit SHA you tested against).
 - Any suggested remediation, if known.
 
