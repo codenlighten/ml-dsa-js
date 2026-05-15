@@ -3,7 +3,7 @@
 ## 1. Project Overview
 This project is a JavaScript browser CDN library for post-quantum ML-DSA signatures (FIPS-204 / Dilithium). The goal is to provide a straightforward API and browser global (`MLDSA`) that developers can load from a CDN for key generation, signing, and verification.
 
-Current status: **Dual-stack mnemonic support (ECDSA + ML-DSA), mnemonic generation, EIP-55, bech32, WIF helpers, tests, CI, and repo-hosted `dist` artifacts are enabled.**
+Current status: **Dual-stack mnemonic support (ECDSA + ML-DSA), mnemonic generation, EIP-55, bech32, WIF helpers, role-based derivation with frozen v1 conformance vectors, tests, CI, and repo-hosted `dist` artifacts are enabled.**
 
 ## 2. Progress
 Completed:
@@ -39,6 +39,15 @@ Completed:
   - `buildIdentityId()` domain-separated SHA-256 identity identifier helper
 - Expanded tests for role path derivation, deterministic role-key generation, path overrides, and identity ID determinism.
 - Updated README with role-based API docs and usage guidance.
+- Froze v1 conformance vectors at `test/vectors/role-derivation.v1.json` covering chain ∈ {bitcoin, bsv, ethereum} × level ∈ {44, 65, 87}.
+- Added `scripts/gen-vectors.mjs` regeneration helper and `test/vectors.test.mjs` byte-for-byte comparison test.
+- Packaging hardened in v0.2.0: `main` points to ESM bundle, `exports` map added, `engines.node >= 18`, crypto deps exact-pinned, `prepublishOnly` runs `check` (build + test).
+- Tests now 32/32 passing.
+- Published `dist/mldsa.min.js`, `dist/mldsa.js`, and `dist/mldsa.esm.js` to SimpleBSV using B-format OP_RETURN fields:
+  - `19HxigV4QyBv3tHpQVcUEQyq1pzZVdoAutN`
+  - `[Data]`, `[Media Type]`, `[Encoding]`, `[Filename]`
+- Verified on-chain plugin payloads are byte-identical to local `dist/*` (SHA-256 + size match).
+- Updated `local-bsv-cdn-manifest.json` and README plugin URLs to latest txids.
 
 Milestone reached:
 - **MVP source and CDN build config complete.**
@@ -51,8 +60,9 @@ Milestone reached:
 
 ## 4. Next Steps
 1. Keep `dist/` updated in each release commit.
-2. Define and freeze conformance vectors for role-based derivation (`test/vectors/role-derivation.v1.json`).
-3. Optionally add taproot / schnorr support and additional chain formats.
+2. Optionally add taproot / schnorr support and additional chain formats.
+3. Add a repeatable publish script for SimpleBSV raw B-format publishing to reduce manual release steps.
+4. Publish v0.2.0 to npm.
 
 Timeline:
 - Dist artifact updates: every change that affects runtime bundle

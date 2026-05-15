@@ -61,22 +61,22 @@ You can swap `mldsa.min.js` with `mldsa.js` for the non-minified bundle.
 These are the verified txid-backed URLs (byte-for-byte matched against local `dist/*`):
 
 - `mldsa.min.js`:
-  - `https://plugins.whatsonchain.com/api/plugin/main/3e9de4b67d0955e9f54d7a5c3ea4ff9f1b87d35653fefbdf3b6aae8f31e69400`
+  - `https://plugins.whatsonchain.com/api/plugin/main/b9556de0f1dddddfacd3af3e6f01e3880b6da5d7638811d2ab87c7a33c45431e`
 - `mldsa.js`:
-  - `https://plugins.whatsonchain.com/api/plugin/main/a70d82862ca04ed120a4c82bf3e691a22b4aab96b91501ce41fedd7647008e1b`
+  - `https://plugins.whatsonchain.com/api/plugin/main/3ede127085d21252b8283b64ae33d88d5b673b9e9de71cd38888ff5120728ede`
 - `mldsa.esm.js`:
-  - `https://plugins.whatsonchain.com/api/plugin/main/9682b5d75dfb6c754c774fbd1488d8b11b8c4f5c537a84290ad61187650b6b0b`
+  - `https://plugins.whatsonchain.com/api/plugin/main/468c2a7a1e3e5e3d27226abb7b64cffdbf51cd5694b7828b137b70a5a52cbb42`
 
 IIFE (global `MLDSA`):
 
 ```html
-<script src="https://plugins.whatsonchain.com/api/plugin/main/3e9de4b67d0955e9f54d7a5c3ea4ff9f1b87d35653fefbdf3b6aae8f31e69400"></script>
+<script src="https://plugins.whatsonchain.com/api/plugin/main/b9556de0f1dddddfacd3af3e6f01e3880b6da5d7638811d2ab87c7a33c45431e"></script>
 ```
 
 ESM:
 
 ```js
-import * as MLDSA from 'https://plugins.whatsonchain.com/api/plugin/main/9682b5d75dfb6c754c774fbd1488d8b11b8c4f5c537a84290ad61187650b6b0b';
+import * as MLDSA from 'https://plugins.whatsonchain.com/api/plugin/main/468c2a7a1e3e5e3d27226abb7b64cffdbf51cd5694b7828b137b70a5a52cbb42';
 ```
 
 ## API

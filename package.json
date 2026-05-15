@@ -1,13 +1,23 @@
 {
   "name": "ml-dsa-browser-cdn",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Browser CDN bundle for post-quantum ML-DSA signatures",
   "type": "module",
-  "main": "dist/mldsa.js",
+  "main": "dist/mldsa.esm.js",
+  "exports": {
+    ".": {
+      "import": "./dist/mldsa.esm.js"
+    },
+    "./browser": "./dist/mldsa.min.js",
+    "./dist/*": "./dist/*",
+    "./package.json": "./package.json"
+  },
+  "engines": {
+    "node": ">=18"
+  },
   "files": [
     "dist",
     "src",
-    "scripts",
     "README.md"
   ],
   "scripts": {
@@ -15,7 +25,9 @@
     "clean": "rm -rf dist",
     "test": "node --test",
     "check": "npm run build && npm test",
-    "prepublishOnly": "npm run build"
+    "gen-vectors": "node scripts/gen-vectors.mjs",
+    "proxy:dev": "node examples/simplebsv-proxy-server.mjs",
+    "prepublishOnly": "npm run check"
   },
   "keywords": [
     "post-quantum",
@@ -27,12 +39,12 @@
   ],
   "license": "MIT",
   "dependencies": {
-    "@noble/curves": "^1.9.7",
-    "@noble/hashes": "^1.8.0",
-    "@noble/post-quantum": "^0.5.4",
-    "@scure/base": "^1.2.6",
-    "@scure/bip32": "^1.7.0",
-    "@scure/bip39": "^1.6.0"
+    "@noble/curves": "1.9.7",
+    "@noble/hashes": "1.8.0",
+    "@noble/post-quantum": "0.5.4",
+    "@scure/base": "1.2.6",
+    "@scure/bip32": "1.7.0",
+    "@scure/bip39": "1.6.0"
   },
   "devDependencies": {
     "esbuild": "^0.25.10"
