@@ -18,6 +18,13 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   package via `import 'ml-dsa-browser-cdn'`, `'ml-dsa-browser-cdn/browser'`, or
   `'ml-dsa-browser-cdn/dist/*'`.
 - `engines.node >= 18` declaration (required for `node:test`).
+- Attribution banner at the top of every `dist/*` bundle:
+  `Gregory J. Ward, CTO SmartLedger.Technology — MIT`. Note that this rebuilds
+  `dist/*` — the existing on-chain BSV plugin txids in
+  `local-bsv-cdn-manifest.json` still serve the previous banner-less bundle and
+  remain valid. Re-publishing to BSV is optional.
+- `LICENSE` (MIT), `CHANGELOG.md`, `SECURITY.md` shipped in the npm tarball.
+- `repository`, `homepage`, `bugs`, and `author` metadata in `package.json`.
 
 ### Changed
 - `package.json` `main` now points to `dist/mldsa.esm.js` (was `dist/mldsa.js`,

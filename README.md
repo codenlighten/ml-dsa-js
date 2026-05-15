@@ -294,4 +294,4 @@ See [`CHANGELOG.md`](CHANGELOG.md).
 
 ## License
 
-[MIT](LICENSE) © Gregory J. Ward
+[MIT](LICENSE) © Gregory J. Ward, CTO — [SmartLedger.Technology](https://smartledger.technology)

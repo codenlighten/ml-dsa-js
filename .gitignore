@@ -5,3 +5,5 @@ npm-debug.log*
 .env
 simplebsv.md
 *.hex
+.npmrc
+*.swp

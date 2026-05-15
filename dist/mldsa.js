@@ -1,3 +1,4 @@
+/*! ml-dsa-browser-cdn v0.2.0 | (c) 2026 Gregory J. Ward, CTO SmartLedger.Technology | MIT License | https://github.com/codenlighten/ml-dsa-js#readme */
 var MLDSA = (() => {
   var __defProp = Object.defineProperty;
   var __getOwnPropDesc = Object.getOwnPropertyDescriptor;

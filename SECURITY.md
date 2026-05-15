@@ -7,7 +7,7 @@ seriously and report them privately.
 
 **Do not** open public GitHub issues for security reports.
 
-Email: **codenlighten1@gmail.com**
+Email: **greg@smartledger.technology** (Gregory J. Ward — CTO, SmartLedger.Technology)
 
 Please include:
 
