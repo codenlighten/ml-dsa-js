@@ -25,6 +25,9 @@ A JavaScript browser-friendly CDN bundle for **post-quantum ML-DSA signatures** 
 npm install @smartledger.technology/ml-dsa
 ```
 
+Requires Node 20 or newer. Node 18 exposes no global `crypto`, so the CSPRNG
+behind random key generation is unavailable there.
+
 ```js
 import MLDSA from '@smartledger.technology/ml-dsa';
 // or the minified IIFE bundle via the explicit subpath:

@@ -43,11 +43,18 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Tests: bech32 output is now pinned to a known-answer address and checked for
   a decodable v0 witness program; inherited-key rejection is covered for
   levels, chains, and roles. 32 → 34 tests.
-- CI now runs the matrix on Node 18/20/22/24 and fails if committed `dist/`
+- CI now runs the matrix on Node 20/22/24 and fails if committed `dist/`
   drifts from `src/` — jsDelivr's GitHub mode serves `dist/` verbatim, so drift
   ships stale code to CDN consumers.
 
 ### Changed
+- **`engines.node` corrected from `>=18` to `>=20`.** Node 18 exposes no global
+  `crypto`, so `@noble/hashes`' CSPRNG throws `crypto.getRandomValues must be
+  defined`. Anything drawing randomness — `keygen()` without a `seed`,
+  `generateMnemonic()` without `entropy` — has always failed there; the old
+  declaration was inaccurate rather than newly broken. Deterministic paths
+  (seeded keygen, mnemonic derivation, sign/verify) were unaffected. Node 18
+  reached end-of-life in April 2025.
 - `toBase64`, `fromBase64`, `defaultEcdsaPath`, `defaultPqPath`,
   `toEip55Address`, and `ROLE` are now ESM named exports as well as members of
   the default export, so the two surfaces match.
