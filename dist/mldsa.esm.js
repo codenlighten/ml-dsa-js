@@ -1,4 +1,4 @@
-/*! @smartledger.technology/ml-dsa v0.2.0 | (c) 2026 Gregory J. Ward, CTO SmartLedger.Technology | MIT License | https://github.com/codenlighten/ml-dsa-js#readme */
+/*! @smartledger.technology/ml-dsa v0.3.0 | (c) 2026 Gregory J. Ward, CTO SmartLedger.Technology | MIT License | https://github.com/codenlighten/ml-dsa-js#readme */
 var __defProp = Object.defineProperty;
 var __defNormalProp = (obj, key, value) => key in obj ? __defProp(obj, key, { enumerable: true, configurable: true, writable: true, value }) : obj[key] = value;
 var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "symbol" ? key + "" : key, value);
@@ -6780,21 +6780,22 @@ var gen = (suffix, blockLen, outputLen) => createHasher2(() => new Keccak2(block
 var keccak_256 = /* @__PURE__ */ (() => gen(1, 136, 256 / 8))();
 
 // src/index.js
-var variants = {
+var variants = Object.assign(/* @__PURE__ */ Object.create(null), {
   44: ml_dsa44,
   65: ml_dsa65,
   87: ml_dsa87
-};
-var chainCoinTypes = {
+});
+var chainCoinTypes = Object.assign(/* @__PURE__ */ Object.create(null), {
   bitcoin: 0,
   bsv: 236,
   ethereum: 60
-};
-var pqCoinTypes = {
+});
+var pqCoinTypes = Object.assign(/* @__PURE__ */ Object.create(null), {
   44: 9003,
   65: 9005,
   87: 9007
-};
+});
+var SEGWIT_V0 = 0;
 var ROLE = Object.freeze({
   IDENTITY: "identity",
   FINANCE: "finance",
@@ -6805,7 +6806,7 @@ var ROLE = Object.freeze({
   CLAIM_AUTH: "claimAuth",
   RISK_REVIEW: "riskReview"
 });
-var roleIndices = Object.freeze({
+var roleIndices = Object.freeze(Object.assign(/* @__PURE__ */ Object.create(null), {
   [ROLE.IDENTITY]: 0,
   [ROLE.FINANCE]: 1,
   [ROLE.TOKEN]: 2,
@@ -6814,7 +6815,7 @@ var roleIndices = Object.freeze({
   [ROLE.REFERRAL_ATTEST]: 5,
   [ROLE.CLAIM_AUTH]: 6,
   [ROLE.RISK_REVIEW]: 7
-});
+}));
 var roleList = Object.freeze(Object.keys(roleIndices));
 var encoder = new TextEncoder();
 function getVariant(level = 65) {
@@ -6918,7 +6919,7 @@ function assertChain(chain2) {
   }
 }
 function assertRole(role) {
-  if (!roleIndices[role] && roleIndices[role] !== 0) {
+  if (roleIndices[role] === void 0) {
     throw new Error(`Unsupported role: ${role}. Use one of: ${roleList.join(", ")}.`);
   }
 }
@@ -7111,7 +7112,7 @@ function ecdsaKeygenFromMnemonic(options = {}) {
     const pkHash = ripemd160(sha256(publicKeyCompressed));
     addressP2PKH = base58checkEncode(concatBytes3(version, pkHash));
     if (chain2 === "bitcoin") {
-      addressBech32 = bech32.encode("bc", bech32.toWords(pkHash));
+      addressBech32 = bech32.encode("bc", [SEGWIT_V0, ...bech32.toWords(pkHash)]);
       address = addressFormat === "p2wpkh" ? addressBech32 : addressP2PKH;
     } else {
       if (addressFormat && addressFormat !== "p2pkh") {
@@ -7168,8 +7169,8 @@ function ecdsaSign(message, privateKey, options = {}) {
   const digest = hashForEcdsa(message, hash);
   const pk = normalizeBytes(privateKey, "privateKey");
   const signatureObj = secp256k1.sign(digest, pk);
-  const signatureCompact = signatureObj.toCompactRawBytes();
-  const signatureDer = hexToBytes(signatureObj.toDERHex());
+  const signatureCompact = signatureObj.toBytes("compact");
+  const signatureDer = signatureObj.toBytes("der");
   return {
     hash,
     signatureCompact,
@@ -7185,7 +7186,7 @@ function ecdsaVerify(signature, message, publicKey, options = {}) {
   const pk = normalizeBytes(publicKey, "publicKey");
   let compactSig = sig;
   if (sig.length !== 64) {
-    compactSig = secp256k1.Signature.fromDER(sig).toCompactRawBytes();
+    compactSig = secp256k1.Signature.fromBytes(sig, "der").toBytes("compact");
   }
   return secp256k1.verify(compactSig, digest, pk);
 }
@@ -7355,8 +7356,11 @@ var MLDSA = {
 };
 var index_default = MLDSA;
 export {
+  ROLE,
   buildIdentityId,
   index_default as default,
+  defaultEcdsaPath,
+  defaultPqPath,
   defaultRolePaths,
   deriveDualStackFromMnemonic,
   deriveRoleKeysFromMnemonic,
@@ -7365,11 +7369,14 @@ export {
   ecdsaPrivateKeyToWif,
   ecdsaSign,
   ecdsaVerify,
+  fromBase64,
   generateMnemonic2 as generateMnemonic,
   isValidMnemonic,
   keygen,
   keygenFromMnemonic,
   sign,
+  toBase64,
+  toEip55Address,
   utils2 as utils,
   verify
 };

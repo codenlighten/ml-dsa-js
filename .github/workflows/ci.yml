@@ -6,7 +6,39 @@ on:
   pull_request:
 
 jobs:
-  build-test:
+  test:
+    name: Test (Node ${{ matrix.node }})
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        node: [18, 20, 22, 24]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+
+      - name: Type-check declarations
+        run: npm run check:types
+
+      - name: Test
+        run: npm test
+
+  dist-in-sync:
+    name: Committed dist matches src
     runs-on: ubuntu-latest
 
     steps:
@@ -22,8 +54,18 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Build
+      - name: Rebuild
         run: npm run build
 
-      - name: Test
-        run: npm test
+      # dist/ is committed and served verbatim by jsDelivr's GitHub mode, so
+      # drift between src/ and dist/ ships stale code to CDN consumers.
+      # --porcelain also catches build outputs that were never committed.
+      - name: Fail if dist/ drifted from src/
+        run: |
+          drift="$(git status --porcelain -- dist)"
+          if [ -n "$drift" ]; then
+            echo "$drift"
+            git diff -- dist | head -100
+            echo "::error::dist/ is out of date. Run 'npm run build' and commit the result."
+            exit 1
+          fi

@@ -4,6 +4,54 @@ All notable changes to this project are recorded here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this project
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.0] — 2026-08-07
+
+### Fixed
+- **`addressBech32` produced invalid Bitcoin addresses.** The bech32 encoder
+  omitted the witness version, emitting a 41-character `bc1…` string instead of
+  a valid 42-character BIP-173 P2WPKH address (`bc1q…`). Any address previously
+  produced with `addressFormat: 'p2wpkh'` is unusable and must be regenerated —
+  no wallet or node will accept it, so no funds can have been sent to one.
+  Frozen v1 conformance vectors are unaffected: they record P2PKH addresses
+  only, and all 9 matrix rows still match byte-for-byte.
+- Lookup validation no longer resolves inherited `Object.prototype` members.
+  `keygen({ level: 'constructor' })`, `defaultEcdsaPath('toString')`, and the
+  role equivalents now throw the documented error instead of reaching a
+  function-valued "coin type" and failing later with an opaque message.
+- Replaced the deprecated `@noble/curves` `toCompactRawBytes()` / `toDERHex()` /
+  `Signature.fromDER()` calls with `toBytes('compact')`, `toBytes('der')`, and
+  `Signature.fromBytes(bytes, 'der')`. Signature bytes are unchanged.
+- Removed the `proxy:dev` script and its README entry: it pointed at
+  `examples/simplebsv-proxy-server.mjs`, which is not in the repository, so
+  `npm run proxy:dev` always failed.
+- `SECURITY.md` no longer cites `local-bsv-cdn-manifest.json`, which is not
+  part of the repository; CDN-integrity guidance now points at the txid-pinned
+  URLs in the README and notes that on-chain artifacts predate the 0.2.0
+  `dist/*` banner.
+
+### Added
+- **TypeScript declarations** (`src/index.d.ts`, copied to `dist/*.d.ts` at
+  build time) wired through `types` and the `exports` map, including a UMD
+  `export as namespace MLDSA` for `<script>` consumers.
+- `npm run check:types` — type-checks the declarations against a usage fixture
+  (`scripts/types.check.ts`) with `tsc --noEmit`; now part of `npm run check`
+  and `prepublishOnly`.
+- `publishConfig.access: "public"` so the scoped package publishes publicly
+  without an explicit `--access public` flag.
+- `sideEffects` declaration for bundler tree-shaking, listing the IIFE bundles
+  as side-effectful so `import '…/browser'` is never dropped.
+- Tests: bech32 output is now pinned to a known-answer address and checked for
+  a decodable v0 witness program; inherited-key rejection is covered for
+  levels, chains, and roles. 32 → 34 tests.
+- CI now runs the matrix on Node 18/20/22/24 and fails if committed `dist/`
+  drifts from `src/` — jsDelivr's GitHub mode serves `dist/` verbatim, so drift
+  ships stale code to CDN consumers.
+
+### Changed
+- `toBase64`, `fromBase64`, `defaultEcdsaPath`, `defaultPqPath`,
+  `toEip55Address`, and `ROLE` are now ESM named exports as well as members of
+  the default export, so the two surfaces match.
+
 ## [0.2.0] — 2026-05-15
 
 ### Changed
@@ -75,5 +123,6 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Whatsonchain BSV plugin CDN URLs (byte-for-byte matched against local
   `dist/*`) recorded in `local-bsv-cdn-manifest.json`.
 
+[0.3.0]: https://github.com/codenlighten/ml-dsa-js/releases/tag/v0.3.0
 [0.2.0]: https://github.com/codenlighten/ml-dsa-js/releases/tag/v0.2.0
 [0.1.0]: https://github.com/codenlighten/ml-dsa-js/releases/tag/v0.1.0

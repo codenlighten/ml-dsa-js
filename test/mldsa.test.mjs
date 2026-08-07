@@ -1,6 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
+import { bech32 } from '@scure/base';
+
 import MLDSA from '../src/index.js';
 
 const mnemonic24 =
@@ -49,6 +51,22 @@ test('deterministic keygen with seed', () => {
 
 test('invalid level throws', () => {
   assert.throws(() => MLDSA.keygen({ level: 99 }), /Unsupported ML-DSA level/);
+});
+
+test('inherited Object keys are rejected, not resolved as lookups', () => {
+  for (const key of ['constructor', 'toString', '__proto__', 'hasOwnProperty']) {
+    assert.throws(() => MLDSA.keygen({ level: key }), /Unsupported ML-DSA level/, `level ${key}`);
+    assert.throws(
+      () => MLDSA.defaultEcdsaPath(key),
+      /Unsupported chain/,
+      `chain ${key}`
+    );
+    assert.throws(
+      () => MLDSA.deriveRoleKeysFromMnemonic({ mnemonic: mnemonic24, pqRole: key }),
+      /Unsupported role/,
+      `role ${key}`
+    );
+  }
 });
 
 test('invalid seed length throws', () => {
@@ -124,9 +142,25 @@ test('bitcoin bech32 address support', () => {
     addressFormat: 'p2wpkh',
   });
 
-  assert.match(keys.address, /^bc1/);
-  assert.match(keys.addressBech32, /^bc1/);
+  // Known answer for m/44'/0'/0'/0/0 of the all-`abandon` test mnemonic.
+  assert.equal(keys.address, 'bc1qca600p6lwp84dzvrwxmyyjmwda3j34l6dk2t4z');
+  assert.equal(keys.addressBech32, keys.address);
   assert.ok(keys.addressP2PKH.length > 20);
+});
+
+test('bech32 address is a decodable BIP-173 v0 witness program', () => {
+  const keys = MLDSA.ecdsaKeygenFromMnemonic({
+    mnemonic: mnemonic24,
+    chain: 'bitcoin',
+    addressFormat: 'p2wpkh',
+  });
+
+  const { prefix, words } = bech32.decode(keys.addressBech32);
+  assert.equal(prefix, 'bc');
+  // Witness version 0, then a 20-byte P2WPKH program.
+  assert.equal(words[0], 0);
+  assert.equal(bech32.fromWords(words.slice(1)).length, 20);
+  assert.equal(keys.addressBech32.length, 42);
 });
 
 test('WIF export/import round-trip', () => {

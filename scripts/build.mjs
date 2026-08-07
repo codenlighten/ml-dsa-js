@@ -1,5 +1,5 @@
 import { build } from 'esbuild';
-import { readFileSync } from 'node:fs';
+import { copyFileSync, readFileSync } from 'node:fs';
 
 const pkg = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8'));
 
@@ -34,4 +34,9 @@ await build({
   outfile: 'dist/mldsa.min.js',
 });
 
-console.log('Built dist/mldsa.esm.js, dist/mldsa.js, dist/mldsa.min.js');
+// One hand-written declaration file describes every bundle — they share a surface.
+for (const target of ['dist/mldsa.esm.d.ts', 'dist/mldsa.d.ts', 'dist/mldsa.min.d.ts']) {
+  copyFileSync('src/index.d.ts', target);
+}
+
+console.log('Built dist/mldsa.esm.js, dist/mldsa.js, dist/mldsa.min.js (+ .d.ts)');

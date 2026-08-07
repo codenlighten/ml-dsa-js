@@ -31,6 +31,12 @@ import MLDSA from '@smartledger.technology/ml-dsa';
 // import '@smartledger.technology/ml-dsa/browser';
 ```
 
+TypeScript declarations ship with the package — no `@types/*` needed:
+
+```ts
+import MLDSA, { type MlDsaLevel, type RoleName } from '@smartledger.technology/ml-dsa';
+```
+
 ### From a CDN (no install)
 
 See [Browser usage](#browser-usage-cdn) below for `unpkg`, `jsDelivr`, and on-chain `Whatsonchain` plugin URLs.
@@ -46,11 +52,11 @@ npm run check    # build + test
 
 Scripts:
 
-- `npm run build` — build `dist/*` CDN artifacts.
-- `npm test` — run `node:test` suite (32 tests, including conformance vectors).
-- `npm run check` — build + test.
+- `npm run build` — build `dist/*` CDN artifacts (bundles + `.d.ts`).
+- `npm test` — run `node:test` suite (34 tests, including conformance vectors).
+- `npm run check:types` — type-check the shipped declarations with `tsc --noEmit`.
+- `npm run check` — build + type-check + test.
 - `npm run gen-vectors` — regenerate `test/vectors/role-derivation.v1.json`.
-- `npm run proxy:dev` — start the example SimpleBSV proxy (`ADMIN_API_KEY` required).
 
 ## Browser usage (CDN)
 
@@ -156,7 +162,7 @@ Use the same BIP-39 mnemonic to derive both classic ECDSA keys and post-quantum 
 - Derives secp256k1 keypairs and chain-style addresses from the same mnemonic.
 - Supported chains: `bitcoin`, `bsv`, `ethereum`.
 - `addressFormat` options:
-  - bitcoin: `p2pkh` (default), `p2wpkh` (bech32)
+  - bitcoin: `p2pkh` (default), `p2wpkh` (BIP-173 bech32, `bc1q…`)
   - bsv: `p2pkh`
 - Default BIP44 paths:
   - Bitcoin: `m/44'/0'/0'/0/0`

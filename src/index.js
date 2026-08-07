@@ -11,28 +11,34 @@ import { secp256k1 } from '@noble/curves/secp256k1.js';
 import { sha256 } from '@noble/hashes/sha2.js';
 import { keccak_256 } from '@noble/hashes/sha3.js';
 import { ripemd160 } from '@noble/hashes/legacy.js';
-import { bytesToHex, hexToBytes } from '@noble/hashes/utils.js';
+import { bytesToHex } from '@noble/hashes/utils.js';
 import { base58, bech32 } from '@scure/base';
 
-const variants = {
+// Lookup tables are null-prototype so a caller-supplied key such as
+// 'constructor' or 'toString' cannot resolve to an inherited Object member and
+// slip past the validation helpers below.
+const variants = Object.assign(Object.create(null), {
   44: ml_dsa44,
   65: ml_dsa65,
   87: ml_dsa87,
-};
+});
 
-const chainCoinTypes = {
+const chainCoinTypes = Object.assign(Object.create(null), {
   bitcoin: 0,
   bsv: 236,
   ethereum: 60,
-};
+});
 
-const pqCoinTypes = {
+const pqCoinTypes = Object.assign(Object.create(null), {
   44: 9003,
   65: 9005,
   87: 9007,
-};
+});
 
-const ROLE = Object.freeze({
+/** Witness version for P2WPKH (BIP-141 / BIP-173). */
+const SEGWIT_V0 = 0;
+
+export const ROLE = Object.freeze({
   IDENTITY: 'identity',
   FINANCE: 'finance',
   TOKEN: 'token',
@@ -43,7 +49,7 @@ const ROLE = Object.freeze({
   RISK_REVIEW: 'riskReview',
 });
 
-const roleIndices = Object.freeze({
+const roleIndices = Object.freeze(Object.assign(Object.create(null), {
   [ROLE.IDENTITY]: 0,
   [ROLE.FINANCE]: 1,
   [ROLE.TOKEN]: 2,
@@ -52,7 +58,7 @@ const roleIndices = Object.freeze({
   [ROLE.REFERRAL_ATTEST]: 5,
   [ROLE.CLAIM_AUTH]: 6,
   [ROLE.RISK_REVIEW]: 7,
-});
+}));
 
 const roleList = Object.freeze(Object.keys(roleIndices));
 
@@ -109,7 +115,7 @@ function base58checkDecode(text) {
   return payload;
 }
 
-function toEip55Address(lowerHexAddress) {
+export function toEip55Address(lowerHexAddress) {
   const clean = lowerHexAddress.toLowerCase().replace(/^0x/, '');
   const hashHex = bytesToHex(keccak_256(encoder.encode(clean)));
   let out = '0x';
@@ -174,7 +180,7 @@ function assertChain(chain) {
 }
 
 function assertRole(role) {
-  if (!roleIndices[role] && roleIndices[role] !== 0) {
+  if (roleIndices[role] === undefined) {
     throw new Error(`Unsupported role: ${role}. Use one of: ${roleList.join(', ')}.`);
   }
 }
@@ -185,13 +191,13 @@ function assertNonNegativeSafeInteger(value, label) {
   }
 }
 
-function defaultEcdsaPath(chain, account = 0, change = 0, index = 0) {
+export function defaultEcdsaPath(chain, account = 0, change = 0, index = 0) {
   assertChain(chain);
   const coinType = chainCoinTypes[chain];
   return `m/44'/${coinType}'/${account}'/${change}/${index}`;
 }
 
-function defaultPqPath(level = 65, account = 0, change = 0, index = 0) {
+export function defaultPqPath(level = 65, account = 0, change = 0, index = 0) {
   const coinType = pqCoinTypes[level];
   if (!coinType) {
     throw new Error(`Unsupported ML-DSA level for path: ${level}. Use 44, 65, or 87.`);
@@ -264,7 +270,7 @@ function hashForEcdsa(message, hash = 'sha256') {
   throw new Error(`Unsupported ECDSA hash: ${hash}. Use sha256 or keccak256.`);
 }
 
-function toBase64(bytes) {
+export function toBase64(bytes) {
   if (typeof btoa === 'function') {
     const bin = Array.from(bytes, (b) => String.fromCharCode(b)).join('');
     return btoa(bin);
@@ -275,7 +281,7 @@ function toBase64(bytes) {
   throw new Error('No base64 encoder available in this runtime');
 }
 
-function fromBase64(b64) {
+export function fromBase64(b64) {
   const normalized = b64.replace(/\s+/g, '');
   if (typeof atob === 'function') {
     const bin = atob(normalized);
@@ -391,7 +397,9 @@ export function ecdsaKeygenFromMnemonic(options = {}) {
     addressP2PKH = base58checkEncode(concatBytes(version, pkHash));
 
     if (chain === 'bitcoin') {
-      addressBech32 = bech32.encode('bc', bech32.toWords(pkHash));
+      // BIP-173: the data part is the witness version (0 for P2WPKH) followed by
+      // the 5-bit-squashed witness program.
+      addressBech32 = bech32.encode('bc', [SEGWIT_V0, ...bech32.toWords(pkHash)]);
       address = addressFormat === 'p2wpkh' ? addressBech32 : addressP2PKH;
     } else {
       if (addressFormat && addressFormat !== 'p2pkh') {
@@ -457,8 +465,8 @@ export function ecdsaSign(message, privateKey, options = {}) {
   const digest = hashForEcdsa(message, hash);
   const pk = normalizeBytes(privateKey, 'privateKey');
   const signatureObj = secp256k1.sign(digest, pk);
-  const signatureCompact = signatureObj.toCompactRawBytes();
-  const signatureDer = hexToBytes(signatureObj.toDERHex());
+  const signatureCompact = signatureObj.toBytes('compact');
+  const signatureDer = signatureObj.toBytes('der');
 
   return {
     hash,
@@ -477,7 +485,7 @@ export function ecdsaVerify(signature, message, publicKey, options = {}) {
   let compactSig = sig;
 
   if (sig.length !== 64) {
-    compactSig = secp256k1.Signature.fromDER(sig).toCompactRawBytes();
+    compactSig = secp256k1.Signature.fromBytes(sig, 'der').toBytes('compact');
   }
 
   return secp256k1.verify(compactSig, digest, pk);

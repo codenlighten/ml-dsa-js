@@ -1,6 +1,6 @@
 {
   "name": "@smartledger.technology/ml-dsa",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Browser CDN bundle for post-quantum ML-DSA signatures (FIPS-204) with dual-stack ECDSA, mnemonic derivation, and role-based key management.",
   "type": "module",
   "author": {
@@ -17,13 +17,25 @@
     "url": "https://github.com/codenlighten/ml-dsa-js/issues"
   },
   "main": "dist/mldsa.esm.js",
+  "types": "dist/mldsa.esm.d.ts",
   "exports": {
     ".": {
+      "types": "./dist/mldsa.esm.d.ts",
       "import": "./dist/mldsa.esm.js"
     },
-    "./browser": "./dist/mldsa.min.js",
+    "./browser": {
+      "types": "./dist/mldsa.min.d.ts",
+      "default": "./dist/mldsa.min.js"
+    },
     "./dist/*": "./dist/*",
     "./package.json": "./package.json"
+  },
+  "sideEffects": [
+    "./dist/mldsa.js",
+    "./dist/mldsa.min.js"
+  ],
+  "publishConfig": {
+    "access": "public"
   },
   "engines": {
     "node": ">=18"
@@ -40,9 +52,9 @@
     "build": "node scripts/build.mjs",
     "clean": "rm -rf dist",
     "test": "node --test",
-    "check": "npm run build && npm test",
+    "check:types": "tsc --noEmit -p tsconfig.json",
+    "check": "npm run build && npm run check:types && npm test",
     "gen-vectors": "node scripts/gen-vectors.mjs",
-    "proxy:dev": "node examples/simplebsv-proxy-server.mjs",
     "prepublishOnly": "npm run check"
   },
   "keywords": [
@@ -63,6 +75,7 @@
     "@scure/bip39": "1.6.0"
   },
   "devDependencies": {
-    "esbuild": "^0.25.10"
+    "esbuild": "^0.25.10",
+    "typescript": "5.9.2"
   }
 }
