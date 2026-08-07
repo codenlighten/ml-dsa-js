@@ -55,6 +55,8 @@
     "check:types": "tsc --noEmit -p tsconfig.json",
     "check": "npm run build && npm run check:types && npm test",
     "gen-vectors": "node scripts/gen-vectors.mjs",
+    "publish:onchain": "node scripts/publish-onchain.mjs",
+    "verify:cdn": "node scripts/verify-cdn.mjs",
     "prepublishOnly": "npm run check"
   },
   "keywords": [

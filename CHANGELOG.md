@@ -4,6 +4,26 @@ All notable changes to this project are recorded here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this project
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+- `scripts/publish-onchain.mjs` and `scripts/verify-cdn.mjs` (plus
+  `npm run publish:onchain` / `npm run verify:cdn`) for republishing the
+  `dist/*` bundles to the BSV plugin CDN via the SimpleBSV API. Publishing is a
+  dry run unless `--broadcast` is passed, every txid is fetched back and
+  compared byte-for-byte against the local bundle, and neither the manifest nor
+  the README records a txid that failed verification. Dev tooling only — not
+  shipped in the npm tarball.
+- README section documenting `@smartledger/bsv` interop: derived role keys load
+  straight into `bsv.PrivateKey.fromWIF` with matching addresses and public
+  keys, and message signatures verify across both libraries.
+
+### Notes
+- `plugins.whatsonchain.com` is currently returning HTTP 502 for every txid,
+  including previously working ones, while `api.whatsonchain.com` is healthy.
+  The documented on-chain URLs are therefore unreachable through no fault of
+  the pinned transactions. `npm run verify:cdn -- --from-readme` reports this.
+
 ## [0.3.0] — 2026-08-07
 
 ### Fixed

@@ -59,6 +59,12 @@ Scripts:
 - `npm test` — run `node:test` suite (34 tests, including conformance vectors).
 - `npm run check:types` — type-check the shipped declarations with `tsc --noEmit`.
 - `npm run check` — build + type-check + test.
+- `npm run verify:cdn` — fetch the on-chain bundles and compare them byte-for-byte
+  against local `dist/*` (`--from-readme` to check the txids documented below,
+  `--allow-offline` to downgrade an unreachable CDN to a warning).
+- `npm run publish:onchain` — dry run by default; `-- --broadcast` publishes
+  `dist/*` via the SimpleBSV API, verifies each txid, and writes
+  `local-bsv-cdn-manifest.json`. Requires `SIMPLEBSV_API_KEY` in `.env`.
 - `npm run gen-vectors` — regenerate `test/vectors/role-derivation.v1.json`.
 
 ## Browser usage (CDN)
@@ -284,6 +290,26 @@ const parsed = MLDSA.ecdsaPrivateKeyFromWif(wif);
 console.log('bech32:', btc.addressBech32);
 console.log('wif compressed?', parsed.compressed);
 ```
+
+## Interop with `@smartledger/bsv`
+
+The ECDSA side of this library emits standard secp256k1 keys, so a derived role
+key loads directly into `@smartledger/bsv` — no adapter, no re-encoding:
+
+```js
+const role = MLDSA.deriveRoleKeysFromMnemonic({ mnemonic, chain: 'bsv' }).roles.identity;
+const priv = bsv.PrivateKey.fromWIF(role.wif);
+
+role.address === priv.toAddress().toString();                 // true
+role.publicKeyHexCompressed === priv.toPublicKey().toString(); // true
+
+// Signatures cross over in both directions
+const sig = bsv.Message('hello').sign(priv);
+bsv.Message('hello').verify(priv.toAddress(), sig);            // true
+```
+
+The ML-DSA keypair is a separate, post-quantum tree derived from the same
+mnemonic — pair the two with `buildIdentityId` for a dual-stack identity.
 
 ## Conformance vectors
 
