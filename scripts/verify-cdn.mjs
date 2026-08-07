@@ -4,6 +4,8 @@
  *   node scripts/verify-cdn.mjs                  # check the manifest
  *   node scripts/verify-cdn.mjs --from-readme    # check the txids in README.md
  *   node scripts/verify-cdn.mjs --allow-offline  # don't fail when the CDN is down
+ *   node scripts/verify-cdn.mjs --via=chain      # skip the plugin renderer entirely
+ *   node scripts/verify-cdn.mjs --update-manifest # record the outcome in the manifest
  *
  * Exit codes: 0 all good, 1 a mismatch or an unreachable txid, 2 bad usage.
  *
@@ -12,7 +14,7 @@
  * Being unreachable is a weaker signal (the Whatsonchain plugin host has its
  * own outages), so --allow-offline downgrades it to a warning.
  */
-import { readFileSync } from 'node:fs';
+import { readFileSync, writeFileSync } from 'node:fs';
 
 import {
   BUNDLES,
@@ -21,12 +23,16 @@ import {
   formatBytes,
   readBundle,
   readManifest,
+  verifyOnChain,
   verifyTxid,
 } from './onchain-lib.mjs';
 
 const args = process.argv.slice(2);
 const FROM_README = args.includes('--from-readme');
 const ALLOW_OFFLINE = args.includes('--allow-offline');
+const UPDATE_MANIFEST = args.includes('--update-manifest');
+// auto: try the plugin renderer, fall back to chain data. chain: skip the renderer.
+const VIA = (args.find((a) => a.startsWith('--via=')) || '--via=auto').slice(6);
 
 function targetsFromManifest() {
   const manifest = readManifest();
@@ -64,6 +70,7 @@ console.log('─'.repeat(72));
 
 let mismatched = 0;
 let unreachable = 0;
+const outcomes = new Map();
 
 for (const target of targets) {
   const expected = local.get(target.file);
@@ -73,11 +80,25 @@ for (const target of targets) {
     continue;
   }
 
-  const check = await verifyTxid(target.txid, expected);
+  let check = VIA === 'chain'
+    ? await verifyOnChain(target.txid, expected)
+    : await verifyTxid(target.txid, expected);
+  let via = VIA === 'chain' ? 'chain' : 'plugin';
+
+  if (!check.ok && !check.reachable && VIA === 'auto') {
+    const onChain = await verifyOnChain(target.txid, expected);
+    if (onChain.ok || onChain.reachable) {
+      check = onChain;
+      via = 'chain';
+    }
+  }
+
   const label = `${target.file.padEnd(20)} ${target.txid.slice(0, 12)}…`;
 
+  outcomes.set(target.txid, { verified: check.ok, verifiedVia: check.ok ? via : null });
+
   if (check.ok) {
-    console.log(`  ✓ ${label}  ${formatBytes(check.size)}  ${check.contentType}`);
+    console.log(`  ✓ ${label}  ${formatBytes(check.size)}  via ${via}${check.contentType ? `  ${check.contentType}` : ''}`);
   } else if (!check.reachable) {
     unreachable += 1;
     console.warn(`  ? ${label}  unreachable — ${check.reason}`);
@@ -85,6 +106,19 @@ for (const target of targets) {
     mismatched += 1;
     console.error(`  ✗ ${label}  ${check.reason}`);
   }
+}
+
+if (UPDATE_MANIFEST && !FROM_README) {
+  const manifest = readManifest();
+  for (const entry of manifest.entries) {
+    const outcome = outcomes.get(entry.txid);
+    if (!outcome) continue;
+    entry.verified = outcome.verified;
+    entry.verifiedVia = outcome.verifiedVia;
+  }
+  manifest.lastVerifiedAt = new Date().toISOString();
+  writeFileSync(MANIFEST_PATH, `${JSON.stringify(manifest, null, 2)}\n`);
+  console.log(`  → recorded outcomes in ${MANIFEST_PATH}`);
 }
 
 console.log('─'.repeat(72));

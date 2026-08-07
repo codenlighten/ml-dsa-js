@@ -98,25 +98,35 @@ You can swap `mldsa.min.js` with `mldsa.js` for the non-minified bundle.
 
 ## Browser usage (blockchain CDN via Whatsonchain plugin)
 
-These are the verified txid-backed URLs (byte-for-byte matched against local `dist/*`):
+These are the txid-backed URLs for the v0.3.0 bundles. Each transaction's
+payload has been verified byte-for-byte against local `dist/*` — re-check at any
+time with `npm run verify:cdn`, and see
+[`local-bsv-cdn-manifest.json`](local-bsv-cdn-manifest.json) for the SHA-256 of
+each bundle.
+
+> **Availability note:** `plugins.whatsonchain.com` is currently returning HTTP
+> 502 for all requests, including previously working txids. The transactions and
+> their payloads are intact — `api.whatsonchain.com` serves them fine, which is
+> how they were verified — but the plugin renderer that turns a txid into a
+> loadable script is down. Use the npm or jsDelivr URLs above until it recovers.
 
 - `mldsa.min.js`:
-  - `https://plugins.whatsonchain.com/api/plugin/main/b9556de0f1dddddfacd3af3e6f01e3880b6da5d7638811d2ab87c7a33c45431e`
+  - `https://plugins.whatsonchain.com/api/plugin/main/413fd9292cc9099c68b9fd662ac05c29f75647cc0e90b76c293081457e3c7330`
 - `mldsa.js`:
-  - `https://plugins.whatsonchain.com/api/plugin/main/3ede127085d21252b8283b64ae33d88d5b673b9e9de71cd38888ff5120728ede`
+  - `https://plugins.whatsonchain.com/api/plugin/main/0304ec509ba3f2a063d89d4f9edd62c47b0b1ab8d94c0a320fa7f1899d82308a`
 - `mldsa.esm.js`:
-  - `https://plugins.whatsonchain.com/api/plugin/main/468c2a7a1e3e5e3d27226abb7b64cffdbf51cd5694b7828b137b70a5a52cbb42`
+  - `https://plugins.whatsonchain.com/api/plugin/main/ae66460b39c03ac7fd254db78825d8253b9b5e0ed4071a2c9182e1ffd309b05c`
 
 IIFE (global `MLDSA`):
 
 ```html
-<script src="https://plugins.whatsonchain.com/api/plugin/main/b9556de0f1dddddfacd3af3e6f01e3880b6da5d7638811d2ab87c7a33c45431e"></script>
+<script src="https://plugins.whatsonchain.com/api/plugin/main/413fd9292cc9099c68b9fd662ac05c29f75647cc0e90b76c293081457e3c7330"></script>
 ```
 
 ESM:
 
 ```js
-import * as MLDSA from 'https://plugins.whatsonchain.com/api/plugin/main/468c2a7a1e3e5e3d27226abb7b64cffdbf51cd5694b7828b137b70a5a52cbb42';
+import * as MLDSA from 'https://plugins.whatsonchain.com/api/plugin/main/ae66460b39c03ac7fd254db78825d8253b9b5e0ed4071a2c9182e1ffd309b05c';
 ```
 
 ## API

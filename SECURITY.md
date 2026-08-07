@@ -45,13 +45,15 @@ Security fixes are issued against the latest minor release line on the
 - **Mnemonic-based derivation**: A BIP-39 mnemonic re-derives both the
   ECDSA tree and the ML-DSA tree deterministically. The mnemonic is the
   ultimate secret. Treat it like a seed phrase for a high-value wallet.
-- **CDN integrity**: The README lists txid-pinned Whatsonchain plugin URLs for
-  the `dist/*` bundles. Pinning a txid gets you a cryptographically committed,
-  immutable artifact. If you load from jsDelivr or unpkg without subresource
-  integrity (SRI), the CDN is in your trust boundary — pin a version or commit
-  and use an SRI hash. Note that the on-chain artifacts predate the `dist/*`
-  attribution banner added in 0.2.0, so their bytes differ from a current
-  local build; verify against the bundle from the matching release tag.
+- **CDN integrity**: `local-bsv-cdn-manifest.json` records the txid and SHA-256
+  of every on-chain bundle. Pinning a txid gets you a cryptographically
+  committed, immutable artifact. Re-check at any time with
+  `npm run verify:cdn`, which compares the on-chain payload byte-for-byte
+  against the local build; `--via=chain` reads the transaction directly from
+  `api.whatsonchain.com` rather than trusting the plugin renderer, which is the
+  check that actually matters. If you load from jsDelivr or unpkg without
+  subresource integrity (SRI), the CDN is in your trust boundary — pin a version
+  or commit and use an SRI hash.
 - **Dependencies**: All crypto primitives come from `@noble/*` and
   `@scure/*`, which are audited and widely used. Versions are exact-pinned
   in `package.json`. Run `npm audit` before deploying.

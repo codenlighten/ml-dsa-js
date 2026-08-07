@@ -32,6 +32,8 @@ import {
   loadEnv,
   pluginUrl,
   readBundle,
+  readManifest,
+  verifyOnChain,
   verifyTxid,
 } from './onchain-lib.mjs';
 
@@ -128,27 +130,47 @@ async function publishOne(bundle) {
   return { txid, fee: result?.fee ?? result?.result?.fee ?? null };
 }
 
-function updateReadme(entries) {
+/**
+ * Swap the documented txids for the newly published ones.
+ *
+ * A txid appears more than once in the README (once in the URL list, again in
+ * a usage example), so this maps old txid → new txid per bundle using the
+ * previous manifest and replaces every occurrence. Positional replacement
+ * would silently mis-pair the duplicates.
+ */
+function updateReadme(entries, previous) {
   const path = `${ROOT}/README.md`;
   let readme = readFileSync(path, 'utf8');
-  let replaced = 0;
 
-  // Replace whole plugin URLs so a stale txid cannot survive anywhere.
-  const byOldest = readme.match(/plugin\/main\/[0-9a-f]{64}/g) || [];
-  if (byOldest.length !== entries.length) {
+  if (!previous?.entries?.length) {
     console.warn(
-      `! README has ${byOldest.length} plugin URLs but ${entries.length} bundles were published; ` +
-        'not rewriting. Update the README by hand.'
+      '! No previous manifest to map old txids from; not rewriting the README. ' +
+        'Update it by hand, then future runs will map cleanly.'
     );
     return 0;
   }
 
-  // README order matches BUNDLES order: min, non-min IIFE, esm.
-  entries.forEach((entry) => {
-    const next = `plugin/main/${entry.txid}`;
-    readme = readme.replace(/plugin\/main\/[0-9a-f]{64}/, next);
-    replaced += 1;
-  });
+  const oldByFile = new Map(previous.entries.map((e) => [e.file, e.txid]));
+  let replaced = 0;
+
+  for (const entry of entries) {
+    const old = oldByFile.get(entry.file);
+    if (!old || old === entry.txid) continue;
+    const occurrences = readme.split(old).length - 1;
+    if (!occurrences) {
+      console.warn(`! ${entry.file}: previous txid ${old.slice(0, 12)}… not found in README`);
+      continue;
+    }
+    readme = readme.split(old).join(entry.txid);
+    replaced += occurrences;
+  }
+
+  const stale = readme.match(/plugin\/main\/[0-9a-f]{64}/g) || [];
+  const published = new Set(entries.map((e) => `plugin/main/${e.txid}`));
+  const leftovers = stale.filter((u) => !published.has(u));
+  if (leftovers.length) {
+    console.warn(`! ${leftovers.length} plugin URL(s) in the README were not updated — check by hand.`);
+  }
 
   writeFileSync(path, readme);
   return replaced;
@@ -156,6 +178,8 @@ function updateReadme(entries) {
 
 async function main() {
   const bundles = BUNDLES.map(readBundle);
+  // Captured before the new manifest overwrites it — needed to map README txids.
+  const previousManifest = readManifest();
 
   console.log('ML-DSA on-chain CDN publish');
   console.log('─'.repeat(60));
@@ -195,11 +219,29 @@ async function main() {
   let unreachable = 0;
   for (const entry of entries) {
     const local = bundles.find((b) => b.path === entry.file);
-    const check = await verifyTxid(entry.txid, local);
-    entry.verified = check.ok;
+    let check = await verifyTxid(entry.txid, local);
     entry.contentType = check.contentType ?? null;
+    entry.verifiedVia = check.ok ? 'plugin' : null;
 
-    if (check.ok) {
+    // The plugin renderer can be down while the chain data is perfectly
+    // intact. Fall back to the authoritative source before giving up.
+    if (!check.ok && !check.reachable) {
+      console.warn(`  ? ${entry.file.padEnd(22)} plugin unreachable (${check.reason}) — checking chain…`);
+      const onChain = await verifyOnChain(entry.txid, local);
+      if (onChain.ok) {
+        check = onChain;
+        entry.verifiedVia = 'chain';
+      } else {
+        check = { ...onChain, reason: `${check.reason}; chain: ${onChain.reason}` };
+      }
+    }
+
+    entry.verified = check.ok;
+
+    if (check.ok && entry.verifiedVia === 'chain') {
+      verified += 1;
+      console.log(`  ✓ ${entry.file.padEnd(22)} on-chain payload matches (${check.size} bytes)`);
+    } else if (check.ok) {
       verified += 1;
       console.log(`  ✓ ${entry.file.padEnd(22)} matches (served as ${check.contentType})`);
       if (!/javascript|ecmascript/i.test(check.contentType)) {
@@ -235,7 +277,7 @@ async function main() {
   }
 
   if (UPDATE_README) {
-    const n = updateReadme(entries);
+    const n = updateReadme(entries, previousManifest);
     if (n) console.log(`Updated ${n} plugin URLs in README.md`);
   } else {
     console.log('\nAll bundles verified. Re-run with --update-readme to rewrite the README txids.');

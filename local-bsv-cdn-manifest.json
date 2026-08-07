@@ -1,0 +1,42 @@
+{
+  "version": "v1",
+  "package": "0.3.0",
+  "publishedAt": "2026-08-07T13:11:58.306Z",
+  "endpoint": "/publish/text",
+  "entries": [
+    {
+      "file": "dist/mldsa.min.js",
+      "bytes": 100633,
+      "sha256": "e288ea57118a7f3a6cd0b839a9e0cd3e183adcc7cc3a88c3d39a22b3f124d747",
+      "txid": "413fd9292cc9099c68b9fd662ac05c29f75647cc0e90b76c293081457e3c7330",
+      "url": "https://plugins.whatsonchain.com/api/plugin/main/413fd9292cc9099c68b9fd662ac05c29f75647cc0e90b76c293081457e3c7330",
+      "fee": 10108,
+      "verified": true,
+      "contentType": null,
+      "verifiedVia": "chain"
+    },
+    {
+      "file": "dist/mldsa.js",
+      "bytes": 192678,
+      "sha256": "655c6f1926e19004c5aa60ba56643850ff9b9429bac536e7108454186097fa63",
+      "txid": "0304ec509ba3f2a063d89d4f9edd62c47b0b1ab8d94c0a320fa7f1899d82308a",
+      "url": "https://plugins.whatsonchain.com/api/plugin/main/0304ec509ba3f2a063d89d4f9edd62c47b0b1ab8d94c0a320fa7f1899d82308a",
+      "fee": 19312,
+      "verified": true,
+      "contentType": null,
+      "verifiedVia": "chain"
+    },
+    {
+      "file": "dist/mldsa.esm.js",
+      "bytes": 180689,
+      "sha256": "50563c0c94333fec191a320516f0c1e569a526611cd2d09f03b34c65b4653f63",
+      "txid": "ae66460b39c03ac7fd254db78825d8253b9b5e0ed4071a2c9182e1ffd309b05c",
+      "url": "https://plugins.whatsonchain.com/api/plugin/main/ae66460b39c03ac7fd254db78825d8253b9b5e0ed4071a2c9182e1ffd309b05c",
+      "fee": 18113,
+      "verified": true,
+      "contentType": null,
+      "verifiedVia": "chain"
+    }
+  ],
+  "lastVerifiedAt": "2026-08-07T13:25:25.373Z"
+}
